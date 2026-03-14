@@ -45,6 +45,41 @@ pub enum TimelineState {
     Completed,
 }
 
+// ── At (relative positioning) ───────────────────────────────────────────────
+
+/// Relative placement tokens for [`Timeline::add_at`].
+///
+/// Instead of manually calculating offsets, use `At` variants to position
+/// animations relative to existing timeline entries — GSAP-style.
+///
+/// # Example
+///
+/// ```rust
+/// use spanda::timeline::{Timeline, At};
+/// use spanda::tween::Tween;
+///
+/// let mut timeline = Timeline::new()
+///     .add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+///
+/// timeline.add_at("slide", Tween::new(0.0_f32, 100.0).duration(0.8).build(), 0.8, At::Start);
+/// timeline.add_at("scale", Tween::new(1.0_f32, 2.0).duration(0.3).build(), 0.3, At::End);
+/// timeline.add_at("glow", Tween::new(0.0_f32, 1.0).duration(0.4).build(), 0.4, At::Label("fade"));
+/// timeline.add_at("pop", Tween::new(0.0_f32, 1.0).duration(0.2).build(), 0.2, At::Offset(0.1));
+/// ```
+#[derive(Debug, Clone, PartialEq)]
+pub enum At<'a> {
+    /// Place at `t = 0.0` (the absolute start of the timeline).
+    Start,
+    /// Place after the latest-ending entry in the timeline.
+    End,
+    /// Place at the same start time as the entry with the given label.
+    Label(&'a str),
+    /// Place at the given number of seconds *after* the last-added entry ends.
+    ///
+    /// Positive values add a gap, negative values overlap.
+    Offset(f32),
+}
+
 // ── TimelineEntry ────────────────────────────────────────────────────────────
 
 /// A single entry in a [`Timeline`].
@@ -87,6 +122,8 @@ pub struct Timeline {
     elapsed: f32,
     state: TimelineState,
     looping: Loop,
+    /// Time scale multiplier applied to dt (default 1.0).
+    time_scale: f32,
     /// Callbacks that fire when the timeline completes (std only).
     #[cfg(feature = "std")]
     on_finish_callbacks: Vec<Box<dyn FnMut()>>,
@@ -99,6 +136,7 @@ impl core::fmt::Debug for Timeline {
             .field("elapsed", &self.elapsed)
             .field("state", &self.state)
             .field("looping", &self.looping)
+            .field("time_scale", &self.time_scale)
             .finish()
     }
 }
@@ -111,6 +149,7 @@ impl Timeline {
             elapsed: 0.0,
             state: TimelineState::Idle,
             looping: Loop::Once,
+            time_scale: 1.0,
             #[cfg(feature = "std")]
             on_finish_callbacks: Vec::new(),
         }
@@ -134,6 +173,56 @@ impl Timeline {
             completed: false,
         });
         self
+    }
+
+    /// Add a labelled animation at a position relative to existing entries.
+    ///
+    /// `duration` is the length of this animation in seconds (needed because
+    /// trait objects cannot expose their own duration).
+    ///
+    /// See [`At`] for available positioning modes.
+    pub fn add_at<A: Update + 'static>(
+        &mut self,
+        label: &str,
+        animation: A,
+        duration: f32,
+        at: At<'_>,
+    ) {
+        let start_at = match at {
+            At::Start => 0.0,
+            At::End => {
+                // After the latest-ending entry
+                self.entries
+                    .iter()
+                    .map(|e| e.start_at + e.duration)
+                    .fold(0.0_f32, f32::max)
+            }
+            At::Label(target) => {
+                // Same start time as the entry with the given label
+                self.entries
+                    .iter()
+                    .find(|e| e.label == target)
+                    .map(|e| e.start_at)
+                    .unwrap_or(0.0)
+            }
+            At::Offset(offset) => {
+                // Relative to the last-added entry's end.
+                // If no entries exist, treat as absolute.
+                self.entries
+                    .last()
+                    .map(|e| e.start_at + e.duration + offset)
+                    .unwrap_or(offset.max(0.0))
+            }
+        };
+
+        self.entries.push(TimelineEntry {
+            label: label.to_string(),
+            animation: Box::new(animation),
+            start_at: start_at.max(0.0),
+            duration,
+            started: false,
+            completed: false,
+        });
     }
 
     /// Set the loop mode.
@@ -208,6 +297,18 @@ impl Timeline {
     pub fn on_finish<F: FnMut() + 'static>(&mut self, callback: F) {
         self.on_finish_callbacks.push(Box::new(callback));
     }
+
+    /// Set the time scale multiplier at runtime.
+    ///
+    /// Values > 1.0 speed up, < 1.0 slow down, 0.0 effectively pauses.
+    pub fn set_time_scale(&mut self, scale: f32) {
+        self.time_scale = scale;
+    }
+
+    /// Get the current time scale.
+    pub fn time_scale(&self) -> f32 {
+        self.time_scale
+    }
 }
 
 impl Default for Timeline {
@@ -222,7 +323,7 @@ impl Update for Timeline {
             return self.state != TimelineState::Completed;
         }
 
-        let dt = dt.max(0.0);
+        let dt = (dt * self.time_scale).max(0.0);
         self.elapsed += dt;
 
         let mut all_done = true;
@@ -346,6 +447,7 @@ impl Sequence {
             elapsed: 0.0,
             state: TimelineState::Idle,
             looping: self.looping,
+            time_scale: 1.0,
             #[cfg(feature = "std")]
             on_finish_callbacks: Vec::new(),
         };
@@ -378,6 +480,63 @@ impl core::fmt::Debug for Sequence {
             .field("entries_count", &self.entries.len())
             .finish()
     }
+}
+
+// ── Stagger utility ─────────────────────────────────────────────────────────
+
+/// Create a [`Timeline`] where each animation starts `stagger_delay` seconds
+/// after the previous one.
+///
+/// This is the equivalent of GSAP's `stagger` property — instead of manually
+/// calculating offsets for N animations, just pass them and the spacing.
+///
+/// Each tuple is `(animation, duration)`.  Duration is needed because trait
+/// objects cannot expose their own duration.
+///
+/// # Example
+///
+/// ```rust
+/// use spanda::timeline::stagger;
+/// use spanda::tween::Tween;
+/// use spanda::traits::Update;
+///
+/// let tweens: Vec<_> = (0..5).map(|i| {
+///     let end = (i + 1) as f32 * 20.0;
+///     (Tween::new(0.0_f32, end).duration(0.5).build(), 0.5)
+/// }).collect();
+///
+/// let mut timeline = stagger(tweens, 0.1);
+/// timeline.play();
+/// // Animations start at t=0.0, 0.1, 0.2, 0.3, 0.4
+/// ```
+pub fn stagger<A: Update + 'static>(
+    animations: Vec<(A, f32)>,
+    stagger_delay: f32,
+) -> Timeline {
+    let mut timeline = Timeline {
+        entries: Vec::new(),
+        elapsed: 0.0,
+        state: TimelineState::Idle,
+        looping: Loop::Once,
+        time_scale: 1.0,
+        #[cfg(feature = "std")]
+        on_finish_callbacks: Vec::new(),
+    };
+
+    for (i, (animation, duration)) in animations.into_iter().enumerate() {
+        let start_at = i as f32 * stagger_delay;
+        let label = format!("stagger_{}", i);
+        timeline.entries.push(TimelineEntry {
+            label,
+            animation: Box::new(animation),
+            start_at,
+            duration,
+            started: false,
+            completed: false,
+        });
+    }
+
+    timeline
 }
 
 // ── Tests ────────────────────────────────────────────────────────────────────
@@ -498,5 +657,157 @@ mod tests {
 
         tl.update(0.5);
         assert!(fired.load(Ordering::SeqCst));
+    }
+
+    // ── Time scale tests ────────────────────────────────────────────────────
+
+    #[test]
+    fn timeline_time_scale_double_speed() {
+        let mut tl = Timeline::new()
+            .add("t1", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+        tl.set_time_scale(2.0);
+        tl.play();
+        assert!(!tl.update(0.5)); // effective dt = 1.0, should complete
+        assert_eq!(*tl.state(), TimelineState::Completed);
+    }
+
+    #[test]
+    fn timeline_time_scale_half_speed() {
+        let mut tl = Timeline::new()
+            .add("t1", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+        tl.set_time_scale(0.5);
+        tl.play();
+        tl.update(1.0); // effective dt = 0.5
+        assert_eq!(*tl.state(), TimelineState::Playing);
+    }
+
+    // ── Stagger tests ───────────────────────────────────────────────────────
+
+    #[test]
+    fn stagger_creates_offset_timeline() {
+        let tweens: Vec<_> = (0..3).map(|_| {
+            (Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5)
+        }).collect();
+
+        let mut tl = stagger(tweens, 0.2);
+        tl.play();
+
+        // At t=0.2, first tween running, second about to start
+        tl.update(0.2);
+        assert_eq!(*tl.state(), TimelineState::Playing);
+
+        // Total: last starts at 0.4, runs 0.5 = 0.9s
+        let mut total = 0.2;
+        while tl.update(0.01) {
+            total += 0.01;
+            if total > 5.0 { panic!("Stagger timeline didn't complete"); }
+        }
+        assert!(total >= 0.6 && total <= 1.0, "Expected ~0.7-0.9s, got {total}");
+    }
+
+    #[test]
+    fn stagger_empty_vec_does_not_panic() {
+        let tl = stagger::<Tween<f32>>(Vec::new(), 0.1);
+        assert!((tl.duration() - 0.0).abs() < 1e-6);
+    }
+
+    // ── At (relative positioning) tests ────────────────────────────────────
+
+    #[test]
+    fn at_start_places_at_zero() {
+        let mut tl = Timeline::new()
+            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5);
+
+        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Start);
+
+        // Entry "b" should start at 0.0
+        assert!(
+            (tl.entries[1].start_at - 0.0).abs() < 1e-6,
+            "Expected start_at 0.0, got {}",
+            tl.entries[1].start_at
+        );
+    }
+
+    #[test]
+    fn at_end_places_after_last() {
+        let mut tl = Timeline::new()
+            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+        // Give entry "a" a known duration for At::End to work
+        tl.entries[0].duration = 0.5;
+
+        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::End);
+
+        // Entry "b" should start at 0.5 (end of "a")
+        assert!(
+            (tl.entries[1].start_at - 0.5).abs() < 1e-6,
+            "Expected start_at 0.5, got {}",
+            tl.entries[1].start_at
+        );
+    }
+
+    #[test]
+    fn at_label_places_at_same_time() {
+        let mut tl = Timeline::new()
+            .add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.3);
+
+        tl.add_at(
+            "scale",
+            Tween::new(1.0_f32, 2.0).duration(0.3).build(),
+            0.3,
+            At::Label("fade"),
+        );
+
+        // "scale" should start at the same time as "fade" (0.3)
+        assert!(
+            (tl.entries[1].start_at - 0.3).abs() < 1e-6,
+            "Expected start_at 0.3, got {}",
+            tl.entries[1].start_at
+        );
+    }
+
+    #[test]
+    fn at_offset_places_relative_to_previous() {
+        let mut tl = Timeline::new()
+            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+        tl.entries[0].duration = 0.5;
+
+        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Offset(0.2));
+
+        // "b" should start at 0.0 + 0.5 + 0.2 = 0.7
+        assert!(
+            (tl.entries[1].start_at - 0.7).abs() < 1e-6,
+            "Expected start_at 0.7, got {}",
+            tl.entries[1].start_at
+        );
+    }
+
+    #[test]
+    fn at_offset_negative_overlaps() {
+        let mut tl = Timeline::new()
+            .add("a", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+        tl.entries[0].duration = 1.0;
+
+        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5, At::Offset(-0.3));
+
+        // "b" should start at 0.0 + 1.0 - 0.3 = 0.7
+        assert!(
+            (tl.entries[1].start_at - 0.7).abs() < 1e-6,
+            "Expected start_at 0.7, got {}",
+            tl.entries[1].start_at
+        );
+    }
+
+    #[test]
+    fn at_label_unknown_falls_back_to_zero() {
+        let mut tl = Timeline::new()
+            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5);
+
+        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Label("nonexistent"));
+
+        assert!(
+            (tl.entries[1].start_at - 0.0).abs() < 1e-6,
+            "Expected fallback to 0.0, got {}",
+            tl.entries[1].start_at
+        );
     }
 }

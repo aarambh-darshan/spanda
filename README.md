@@ -6,20 +6,28 @@ A general-purpose **animation library** for Rust.  Zero mandatory dependencies,
 `no_std`-ready, and designed to work anywhere: terminal UIs, web (WASM),
 game engines (Bevy), or native desktop apps.
 
-## ✨ Features
+## Features
 
 - **Tweening** — animate any value from A to B with 31 built-in easing curves
 - **Keyframe tracks** — multi-stop animations with per-segment easing
 - **Timeline & Sequence** — compose animations concurrently or sequentially
+- **Relative positioning** — GSAP-style `At::Start`, `At::End`, `At::Label`, `At::Offset`
+- **Stagger** — offset N animations with a single call
 - **Physics springs** — damped harmonic oscillator with 4 presets
+- **Looping** — `Loop::Once`, `Times(n)`, `Forever`, `PingPong` on tweens and keyframes
+- **Time scale** — speed up / slow down tweens and timelines at runtime
+- **Callbacks** — `on_start`, `on_update`, `on_complete` on tweens (`std` feature)
+- **Value modifiers** — `snap_to(grid)`, `round_to(decimals)`, custom modifiers
+- **Scroll-linked animation** — `ScrollDriver` / `ScrollClock` for position-driven animations
+- **Motion paths** — quadratic and cubic Bezier interpolation with `MotionPath`
 - **Animation driver** — manage multiple animations with auto-cleanup
-- **Clock abstraction** — wall clock, manual clock, and mock clock for testing
+- **Clock abstraction** — wall clock, manual clock, scroll clock, and mock clock for testing
 
-## 🏗️ Getting Started
+## Getting Started
 
 ```toml
 [dependencies]
-spanda = "0.1"
+spanda = "0.3"
 ```
 
 ### Quick Example
@@ -42,6 +50,23 @@ assert!(tween.is_complete());
 assert!((tween.value() - 100.0).abs() < 1e-6);
 ```
 
+### Looping Tween
+
+```rust
+use spanda::{Tween, Loop};
+use spanda::traits::Update;
+
+let mut tween = Tween::new(0.0_f32, 100.0)
+    .duration(1.0)
+    .looping(Loop::PingPong)
+    .build();
+
+// Runs forever, bouncing between 0 and 100
+for _ in 0..600 {
+    tween.update(1.0 / 60.0);
+}
+```
+
 ### Spring Animation
 
 ```rust
@@ -57,7 +82,75 @@ for _ in 0..300 {
 assert!(spring.is_settled());
 ```
 
-### Timeline Composition
+### Timeline with Relative Positioning
+
+```rust
+use spanda::timeline::{Timeline, At};
+use spanda::tween::Tween;
+use spanda::easing::Easing;
+
+let mut tl = Timeline::new()
+    .add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+
+// Place "slide" right after "fade" ends
+tl.add_at("slide", Tween::new(0.0_f32, 100.0).duration(0.8).build(), 0.8, At::End);
+
+// Place "glow" at the same time as "fade"
+tl.add_at("glow", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Label("fade"));
+
+tl.play();
+```
+
+### Staggered Animations
+
+```rust
+use spanda::timeline::stagger;
+use spanda::tween::Tween;
+use spanda::traits::Update;
+
+let tweens: Vec<_> = (0..5).map(|i| {
+    let end = (i + 1) as f32 * 20.0;
+    (Tween::new(0.0_f32, end).duration(0.5).build(), 0.5)
+}).collect();
+
+let mut timeline = stagger(tweens, 0.1);
+timeline.play();
+// Animations start at t=0.0, 0.1, 0.2, 0.3, 0.4
+```
+
+### Scroll-Linked Animation
+
+```rust
+use spanda::scroll::ScrollDriver;
+use spanda::tween::Tween;
+
+let mut driver = ScrollDriver::new(0.0, 1000.0);
+driver.add(Tween::new(0.0_f32, 100.0).duration(1.0).build());
+
+// Drive animation from scroll position instead of time
+driver.set_position(500.0); // 50% scroll
+```
+
+### Motion Path Animation
+
+```rust
+use spanda::path::{MotionPath, MotionPathTween, PathEvaluate};
+use spanda::easing::Easing;
+use spanda::traits::Update;
+
+let path = MotionPath::new()
+    .cubic([0.0_f32, 0.0], [50.0, 100.0], [100.0, 100.0], [150.0, 0.0])
+    .line([150.0, 0.0], [200.0, 0.0]);
+
+let mut tween = MotionPathTween::new(path)
+    .duration(2.0)
+    .easing(Easing::EaseInOutCubic);
+
+tween.update(1.0);
+let pos = tween.value(); // position along the curve
+```
+
+### Sequence Composition
 
 ```rust
 use spanda::timeline::Sequence;
@@ -74,7 +167,7 @@ timeline.play();
 timeline.update(0.9);
 ```
 
-## 🔌 Feature Flags
+## Feature Flags
 
 | Flag       | What it adds                                          |
 |------------|-------------------------------------------------------|
@@ -85,7 +178,7 @@ timeline.update(0.9);
 | `palette`  | Colour interpolation via the `palette` crate          |
 | `tokio`    | `async` / `.await` on timeline completion             |
 
-## 🎮 Bevy Integration
+## Bevy Integration
 
 ```rust,ignore
 use bevy::prelude::*;
@@ -99,7 +192,7 @@ fn main() {
 }
 ```
 
-## 🌐 WASM Integration
+## WASM Integration
 
 ```rust,ignore
 use spanda::integrations::wasm::RafDriver;
@@ -108,20 +201,20 @@ let mut driver = RafDriver::new();
 // Call driver.tick(timestamp_ms) from your rAF callback.
 ```
 
-## 📊 Benchmarks
+## Benchmarks
 
 ```bash
 cargo bench
 ```
 
-## 🧪 Tests
+## Tests
 
 ```bash
-cargo test                # unit + doc tests
+cargo test                # unit + integration + doc tests
 cargo test --tests        # integration tests only
 ```
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 src/
@@ -130,10 +223,12 @@ src/
 ├── easing.rs        — 31 easing functions + Easing enum
 ├── tween.rs         — Tween<T>, TweenBuilder, TweenState
 ├── keyframe.rs      — KeyframeTrack, Keyframe, Loop
-├── timeline.rs      — Timeline, Sequence
+├── timeline.rs      — Timeline, Sequence, At, stagger
 ├── spring.rs        — Spring, SpringConfig
 ├── clock.rs         — Clock, WallClock, ManualClock, MockClock
 ├── driver.rs        — AnimationDriver, AnimationId
+├── scroll.rs        — ScrollClock, ScrollDriver
+├── path.rs          — BezierPath, MotionPath, MotionPathTween
 └── integrations/
     ├── mod.rs
     ├── bevy.rs      — SpandaPlugin  (feature = "bevy")

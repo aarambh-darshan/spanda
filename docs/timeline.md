@@ -222,10 +222,13 @@ timeline.on_finish(move || {
 
 ## Key Methods
 
+### Timeline
+
 | Method | Description |
 |--------|-------------|
 | `Timeline::new()` | Create an empty timeline |
 | `.add(label, animation, start_at)` | Add a labelled animation at a specific time |
+| `.add_at(label, animation, duration, at)` | Add using relative positioning (see below) |
 | `.looping(mode)` | Set loop mode |
 | `.play()` | Start playback |
 | `.pause()` | Pause playback |
@@ -235,7 +238,11 @@ timeline.on_finish(move || {
 | `.duration()` | Total timeline length in seconds |
 | `.progress()` | Playback progress (0.0 → 1.0) |
 | `.state()` | Current `TimelineState` |
+| `.set_time_scale(scale)` | Set playback speed multiplier |
+| `.time_scale()` | Get current speed multiplier |
 | `.on_finish(callback)` | Register a completion callback (`std` only) |
+
+### Sequence
 
 | Method | Description |
 |--------|-------------|
@@ -244,6 +251,107 @@ timeline.on_finish(move || {
 | `.gap(seconds)` | Insert a pause |
 | `.looping(mode)` | Set loop mode for the resulting timeline |
 | `.build()` | Build the final `Timeline` |
+
+---
+
+## Relative Positioning (`At` enum)
+
+Instead of calculating absolute start times manually, use `At` to position animations relative to existing entries — GSAP-style.
+
+```rust
+use spanda::timeline::{Timeline, At};
+use spanda::tween::Tween;
+use spanda::easing::Easing;
+
+let mut tl = Timeline::new()
+    .add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+
+// At::Start — always at t=0
+tl.add_at("intro", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Start);
+
+// At::End — after the latest-ending entry
+tl.add_at("slide", Tween::new(0.0_f32, 100.0).duration(0.8).build(), 0.8, At::End);
+
+// At::Label — same start time as a named entry
+tl.add_at("glow", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Label("fade"));
+
+// At::Offset — relative to previous entry's end (positive = gap, negative = overlap)
+tl.add_at("pop", Tween::new(0.0_f32, 1.0).duration(0.2).build(), 0.2, At::Offset(0.1));
+
+tl.play();
+```
+
+### `At` Variants
+
+| Variant | Places at |
+|---------|-----------|
+| `At::Start` | Absolute t=0 |
+| `At::End` | After the latest-ending entry (`start_at + duration`) |
+| `At::Label("name")` | Same start time as the entry with that label |
+| `At::Offset(f32)` | Last entry's end + offset (positive = gap, negative = overlap) |
+
+### `.add()` vs `.add_at()`
+
+| | `.add()` | `.add_at()` |
+|---|---------|------------|
+| **Signature** | `add(label, animation, start_at)` | `add_at(label, animation, duration, at)` |
+| **Takes self** | `self` (consuming, for builder chains) | `&mut self` (for post-construction) |
+| **Positioning** | Absolute seconds | Relative via `At` enum |
+| **Duration** | Not stored (0.0) | Stored (needed for `At::End` / `At::Offset`) |
+
+---
+
+## Time Scale
+
+Speed up or slow down an entire timeline at runtime:
+
+```rust
+use spanda::timeline::Timeline;
+use spanda::tween::Tween;
+
+let mut tl = Timeline::new()
+    .add("t1", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+
+tl.set_time_scale(2.0); // 2x speed — completes in half the time
+tl.play();
+
+// Or slow down:
+tl.set_time_scale(0.5); // half speed
+```
+
+The time scale multiplies the `dt` passed to each entry. A scale of 0.0 effectively pauses the timeline (though `.pause()` is more idiomatic).
+
+---
+
+## Stagger Utility
+
+Create a `Timeline` where multiple animations start with evenly-spaced delays:
+
+```rust
+use spanda::timeline::stagger;
+use spanda::tween::Tween;
+use spanda::traits::Update;
+
+let tweens: Vec<_> = (0..5).map(|i| {
+    let end = (i + 1) as f32 * 20.0;
+    (Tween::new(0.0_f32, end).duration(0.5).build(), 0.5)
+}).collect();
+
+let mut timeline = stagger(tweens, 0.1);
+timeline.play();
+```
+
+Each tuple is `(animation, duration)`. Animation `i` starts at `i * stagger_delay`:
+
+```
+Animation 0: ████████               (0.0 – 0.5)
+Animation 1:   ████████             (0.1 – 0.6)
+Animation 2:     ████████           (0.2 – 0.7)
+Animation 3:       ████████         (0.3 – 0.8)
+Animation 4:         ████████       (0.4 – 0.9)
+```
+
+The `stagger()` function works with any type implementing `Update + 'static`.
 
 ---
 

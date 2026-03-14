@@ -90,12 +90,15 @@ spanda/
     ├── lib.rs               ← crate root, re-exports
     ├── traits.rs            ← Interpolate, Animatable, Update
     ├── easing.rs            ← Easing enum + 31 pure functions
-    ├── tween.rs             ← Tween<T> struct
+    ├── tween.rs             ← Tween<T> struct, looping, time scale, callbacks
     ├── keyframe.rs          ← KeyframeTrack<T>
-    ├── timeline.rs          ← Timeline, Sequence, Loop
+    ├── timeline.rs          ← Timeline, Sequence, At, stagger
     ├── spring.rs            ← Spring, SpringConfig
     ├── driver.rs            ← AnimationDriver (manages active animations)
     ├── clock.rs             ← Clock trait, WallClock, MockClock
+    ├── driver.rs            ← AnimationDriver (manages active animations)
+    ├── scroll.rs            ← ScrollClock, ScrollDriver (scroll-linked animation)
+    ├── path.rs              ← BezierPath, MotionPath, MotionPathTween
     └── integrations/
         ├── mod.rs
         ├── bevy.rs          ← SpandaPlugin (feature = "bevy")
@@ -625,12 +628,14 @@ The crate root re-exports everything the user needs:
 ```rust
 pub use easing::Easing;
 pub use traits::{Animatable, Interpolate, Update};
-pub use tween::{Tween, TweenState};
+pub use tween::{Tween, TweenState, snap_to, round_to};
 pub use keyframe::{KeyframeTrack, Keyframe, Loop};
-pub use timeline::{Timeline, Sequence};
+pub use timeline::{Timeline, Sequence, At, stagger};
 pub use spring::{Spring, SpringConfig};
 pub use driver::{AnimationDriver, AnimationId};
 pub use clock::{Clock, WallClock, ManualClock, MockClock};
+pub use scroll::{ScrollClock, ScrollDriver};
+pub use path::{BezierPath, MotionPath, MotionPathTween, PathEvaluate};
 ```
 
 ---
@@ -1137,11 +1142,11 @@ Before running `cargo publish`:
 
 | Version | Milestone |
 |---------|-----------|
-| `0.1.0` | `traits`, `easing`, `tween` — core usable |
-| `0.2.0` | `keyframe`, `timeline`, `Sequence` |
-| `0.3.0` | `spring` physics |
-| `0.4.0` | `bevy` integration |
-| `0.5.0` | `wasm` integration |
+| `0.1.0` | Core complete — tweening, keyframes, timelines, springs, driver, clock |
+| `0.2.0` | Ergonomics — stagger, looping, time scale, callbacks, value modifiers |
+| `0.3.0` | Scroll & motion paths — ScrollDriver, At positioning, Bezier paths, MotionPath |
+| `0.4.0` | `spring` generics & Bevy polish |
+| `0.5.0` | `wasm` & web polish |
 | `1.0.0` | Stable API, full docs, all examples |
 
 ---
@@ -1241,5 +1246,5 @@ can inspect and mutate them directly without getters.
 
 ---
 
-*Document version: 0.1 — covers planned scope through spanda 1.0.0*
+*Document version: 0.3 — covers planned scope through spanda 1.0.0*
 *Project: Aarambh Dev Hub — github.com/aarambh-darshan/spanda*

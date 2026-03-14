@@ -54,18 +54,22 @@ pub mod timeline;
 pub mod spring;
 pub mod clock;
 pub mod driver;
+pub mod scroll;
+pub mod path;
 pub mod integrations;
 
 // ── Top-level re-exports (ergonomic imports) ──────────────────────────────────
 
 pub use easing::Easing;
 pub use traits::{Animatable, Interpolate, Update};
-pub use tween::{Tween, TweenState};
+pub use tween::{Tween, TweenState, snap_to, round_to};
 pub use keyframe::{KeyframeTrack, Keyframe, Loop};
-pub use timeline::{Timeline, Sequence};
+pub use timeline::{Timeline, Sequence, At, stagger};
 pub use spring::{Spring, SpringConfig};
 pub use driver::{AnimationDriver, AnimationId};
 pub use clock::{Clock, ManualClock, MockClock};
+pub use scroll::{ScrollClock, ScrollDriver};
+pub use path::{BezierPath, MotionPath, MotionPathTween, PathEvaluate};
 
 #[cfg(feature = "std")]
 pub use clock::WallClock;

@@ -38,6 +38,16 @@ use std::sync::{Arc, Mutex};
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub struct AnimationId(u64);
 
+impl AnimationId {
+    /// Create an `AnimationId` from a raw counter value.
+    ///
+    /// This is public so that other drivers (e.g. [`ScrollDriver`](crate::scroll::ScrollDriver))
+    /// can mint IDs. End users should not need to call this directly.
+    pub fn new(raw: u64) -> Self {
+        Self(raw)
+    }
+}
+
 // ── AnimationDriver ──────────────────────────────────────────────────────────
 
 /// Manages a set of active animations.

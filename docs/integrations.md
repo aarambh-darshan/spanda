@@ -226,7 +226,7 @@ impl App {
 
 ### Leptos Integration Pattern
 
-In Leptos, use `set_interval` or `request_animation_frame` to drive animations:
+In Leptos, spanda's `on_update` callback bridges animation values directly into signals — no manual polling needed:
 
 ```rust
 use leptos::*;
@@ -237,31 +237,72 @@ use spanda::traits::Update;
 #[component]
 fn AnimatedBox() -> impl IntoView {
     let (opacity, set_opacity) = create_signal(0.0_f32);
-    
-    // Create the tween
-    let tween = store_value(
-        Tween::new(0.0_f32, 1.0)
-            .duration(1.0)
-            .easing(Easing::EaseOutCubic)
-            .build()
-    );
-    
+
+    // Build the tween
+    let mut tween = Tween::new(0.0_f32, 1.0)
+        .duration(1.0)
+        .easing(Easing::EaseOutCubic)
+        .build();
+
+    // Bridge to signal — on_update receives the interpolated value directly
+    tween.on_update(move |val: f32| set_opacity.set(val));
+    tween.on_complete(move || log::info!("Fade complete"));
+
+    let tween = store_value(tween);
+
     // Drive with set_interval
     set_interval(
         move || {
-            tween.update_value(|t| {
-                t.update(1.0 / 60.0);
-                set_opacity.set(t.value());
-            });
+            tween.update_value(|t| { t.update(1.0 / 60.0); });
         },
         std::time::Duration::from_millis(16),
     );
-    
+
     view! {
         <div style:opacity=move || opacity.get().to_string()>
             "Fading in..."
         </div>
     }
+}
+```
+
+#### Staggering in Leptos
+
+Use `spanda::timeline::stagger` to animate multiple elements with offset starts:
+
+```rust
+use leptos::*;
+use spanda::tween::Tween;
+use spanda::easing::Easing;
+use spanda::timeline::stagger;
+use spanda::traits::Update;
+
+#[component]
+fn StaggeredList(items: Vec<String>) -> impl IntoView {
+    let signals: Vec<_> = items.iter()
+        .map(|_| create_signal(0.0_f32))
+        .collect();
+
+    let tweens: Vec<_> = signals.iter().map(|(_, set_sig)| {
+        let set_sig = *set_sig;
+        let mut tween = Tween::new(0.0_f32, 1.0)
+            .duration(0.3)
+            .easing(Easing::EaseOutCubic)
+            .build();
+        tween.on_update(move |val| set_sig.set(val));
+        (tween, 0.3)
+    }).collect();
+
+    let mut timeline = stagger(tweens, 0.08);
+    timeline.play();
+    let timeline = store_value(timeline);
+
+    set_interval(
+        move || { timeline.update_value(|tl| { tl.update(1.0 / 60.0); }); },
+        std::time::Duration::from_millis(16),
+    );
+
+    // Render items with animated opacity from signals...
 }
 ```
 
@@ -297,6 +338,83 @@ fn AnimatedBox(cx: Scope) -> Element {
         div { opacity: "{opacity}", "Fading in..." }
     }
 }
+```
+
+---
+
+## Scroll-Linked Animations
+
+Use `ScrollDriver` / `ScrollClock` to drive animations from scroll position instead of wall time:
+
+```rust
+use spanda::scroll::{ScrollDriver, ScrollClock};
+use spanda::tween::Tween;
+use spanda::easing::Easing;
+
+// Map scroll range 0..1000 pixels to animation progress
+let mut driver = ScrollDriver::new(0.0, 1000.0);
+
+// Animations should use duration 1.0 — the driver normalises scroll to [0, 1]
+driver.add(
+    Tween::new(0.0_f32, 1.0)
+        .duration(1.0)
+        .easing(Easing::EaseOutCubic)
+        .build()
+);
+
+// In your scroll handler:
+driver.set_position(scroll_offset);
+```
+
+### ScrollClock for Manual Use
+
+If you already have a driver or want per-animation control, use `ScrollClock` directly:
+
+```rust
+use spanda::scroll::ScrollClock;
+use spanda::clock::Clock;
+use spanda::tween::Tween;
+use spanda::traits::Update;
+
+let mut clock = ScrollClock::new(0.0, 1000.0);
+let mut tween = Tween::new(0.0_f32, 100.0).duration(1.0).build();
+
+// On each scroll event:
+clock.set_position(current_scroll);
+let dt = clock.delta();
+tween.update(dt);
+```
+
+## Motion Paths
+
+Animate values along Bezier curves instead of straight lines:
+
+```rust
+use spanda::path::{BezierPath, MotionPath, MotionPathTween, PathEvaluate};
+use spanda::easing::Easing;
+use spanda::traits::Update;
+
+// Single cubic Bezier
+let curve = BezierPath::cubic(
+    [0.0_f32, 0.0],
+    [0.0, 100.0],
+    [100.0, 100.0],
+    [100.0, 0.0],
+);
+let point = curve.evaluate(0.5); // [50, 75] approximately
+
+// Multi-segment motion path
+let path = MotionPath::new()
+    .cubic([0.0, 0.0], [50.0, 100.0], [100.0, 100.0], [150.0, 0.0])
+    .line([150.0, 0.0], [200.0, 0.0]);
+
+// Animate along the path
+let mut tween = MotionPathTween::new(path)
+    .duration(2.0)
+    .easing(Easing::EaseInOutCubic);
+
+tween.update(1.0); // 50% through
+let pos = tween.value(); // position on the path
 ```
 
 ---

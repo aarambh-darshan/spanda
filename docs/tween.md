@@ -226,3 +226,171 @@ let mut color_tween = Tween::new(
     [0.0, 0.0, 1.0, 1.0],     // blue
 ).duration(2.0).build();
 ```
+
+---
+
+## Alternative Constructors
+
+For readability, use the `from()` or `from_to()` aliases — they're identical to `new()`:
+
+```rust
+use spanda::tween::Tween;
+
+// All three are equivalent:
+let t1 = Tween::new(0.0_f32, 100.0).build();
+let t2 = Tween::from(0.0_f32, 100.0).build();
+let t3 = Tween::from_to(0.0_f32, 100.0).build();
+```
+
+---
+
+## Looping
+
+Tweens support the same `Loop` modes as keyframe tracks:
+
+```rust
+use spanda::{Tween, Loop};
+use spanda::traits::Update;
+
+// Bounce forever between start and end
+let mut tween = Tween::new(0.0_f32, 100.0)
+    .duration(1.0)
+    .looping(Loop::PingPong)
+    .build();
+
+// Play exactly 3 times, then stop
+let mut tween = Tween::new(0.0_f32, 100.0)
+    .duration(1.0)
+    .looping(Loop::Times(3))
+    .build();
+
+// Loop forever
+let mut tween = Tween::new(0.0_f32, 100.0)
+    .duration(1.0)
+    .looping(Loop::Forever)
+    .build();
+```
+
+| Loop Mode | Behaviour |
+|-----------|-----------|
+| `Loop::Once` | Play once and stop (default) |
+| `Loop::Times(n)` | Play exactly `n` times, then complete |
+| `Loop::Forever` | Reset and replay endlessly — never completes |
+| `Loop::PingPong` | Swap start/end each cycle, replay forever |
+
+### PingPong Details
+
+`PingPong` swaps the `start` and `end` values after each cycle. The tween first interpolates from `start` to `end`, then from `end` back to `start`, and so on. Leftover time carries across cycle boundaries to prevent drift.
+
+---
+
+## Time Scale
+
+Speed up or slow down a tween at build time or at runtime:
+
+```rust
+use spanda::tween::Tween;
+
+// Build with 2x speed
+let mut tween = Tween::new(0.0_f32, 100.0)
+    .duration(1.0)
+    .time_scale(2.0)
+    .build();
+
+// Change at runtime
+tween.set_time_scale(0.5); // half speed
+
+// Read current scale
+let scale = tween.time_scale();
+```
+
+| Scale Value | Effect |
+|-------------|--------|
+| `2.0` | Twice as fast — 1.0s animation completes in 0.5s |
+| `0.5` | Half speed — 1.0s animation takes 2.0s |
+| `0.0` | Effectively paused — no progress |
+| `1.0` | Normal speed (default) |
+
+---
+
+## Callbacks
+
+> Requires `feature = "std"` and cannot be used with `feature = "bevy"`.
+
+Register callbacks to fire at specific lifecycle points:
+
+```rust,ignore
+use spanda::tween::Tween;
+use spanda::traits::Update;
+
+let mut tween = Tween::new(0.0_f32, 100.0)
+    .duration(1.0)
+    .build();
+
+// Fires once when the tween starts running
+tween.on_start(|| println!("started!"));
+
+// Fires every frame with the current interpolated value
+tween.on_update(|val: f32| {
+    println!("current value: {val}");
+    // Perfect for reactive frameworks:
+    // set_signal.set(val);
+});
+
+// Fires once when the tween completes
+tween.on_complete(|| println!("done!"));
+```
+
+### Leptos Integration Pattern
+
+The `on_update` callback receives the interpolated `T` value, enabling a clean bridge to reactive signals:
+
+```rust,ignore
+let (opacity, set_opacity) = create_signal(0.0_f32);
+
+let mut tween = Tween::new(0.0_f32, 1.0)
+    .duration(1.0)
+    .easing(Easing::EaseOutCubic)
+    .build();
+
+tween.on_update(move |val: f32| set_opacity.set(val));
+tween.on_complete(move || log::info!("fade complete"));
+```
+
+---
+
+## Value Modifiers
+
+Post-process the interpolated value before it's returned by `.value()`:
+
+```rust
+use spanda::tween::{Tween, snap_to, round_to};
+
+let mut tween = Tween::new(0.0_f32, 100.0)
+    .duration(1.0)
+    .build();
+
+// Snap to a 10-unit grid: values become 0, 10, 20, 30...
+tween.set_modifier(snap_to(10.0));
+
+// Or round to 2 decimal places:
+tween.set_modifier(round_to(2));
+```
+
+The `on_update` callback receives the post-modifier value.
+
+### Built-in Modifiers
+
+| Function | What it does |
+|----------|-------------|
+| `snap_to(grid)` | Rounds to nearest multiple of `grid` |
+| `round_to(decimals)` | Rounds to N decimal places |
+
+You can also pass any `Fn(T) -> T`:
+
+```rust,ignore
+tween.set_modifier(|val: f32| val.max(0.0)); // clamp to non-negative
+```
+
+> Modifiers require `feature = "std"` (they use `Box<dyn Fn>`).
+

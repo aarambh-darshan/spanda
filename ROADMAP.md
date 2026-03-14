@@ -124,22 +124,22 @@ let tween = Tween::new(0.0_f32, 100.0)
 
 ## Planned Releases
 
-### 0.2.0 — Ergonomics & Missing Primitives
+### 0.2.0 — Ergonomics & Missing Primitives ✅
 
-- Stagger utilities (`spanda::timeline::stagger()`)
-- `Tween::from()` / `Tween::from_to()` helpers
-- Full callbacks on `Tween` (`on_start`, `on_update`, `on_complete`)
-- `Loop` support on individual `Tween`s (repeat, yoyo)
-- Time scale control on `Tween` and `Timeline`
-- Value modifiers / snapping utilities
-- API refinements from real-world Leptos usage
+- ✅ Stagger utilities (`spanda::timeline::stagger()`)
+- ✅ `Tween::from()` / `Tween::from_to()` helpers
+- ✅ Full callbacks on `Tween` (`on_start`, `on_update`, `on_complete`)
+- ✅ `Loop` support on individual `Tween`s (repeat, yoyo)
+- ✅ Time scale control on `Tween` and `Timeline`
+- ✅ Value modifiers / snapping utilities (`snap_to`, `round_to`)
+- ✅ API refinements from real-world Leptos usage (`on_update` receives value, stagger example)
 
-### 0.3.0 — Scroll & Motion Paths
+### 0.3.0 — Scroll & Motion Paths ✅
 
-- `ScrollDriver` / `ScrollClock` (scroll-linked animations)
-- Relative timeline positioning (`At::Start`, `At::End`, `At::Label`, `At::Offset`)
-- Quadratic and cubic Bezier path interpolation
-- `MotionPath` type for complex curves
+- ✅ `ScrollDriver` / `ScrollClock` (scroll-linked animations)
+- ✅ Relative timeline positioning (`At::Start`, `At::End`, `At::Label`, `At::Offset`)
+- ✅ Quadratic and cubic Bezier path interpolation
+- ✅ `MotionPath` type for complex curves
 
 ### 0.4.0 — Spring Generics & Bevy Polish
 
@@ -177,6 +177,8 @@ let tween = Tween::new(0.0_f32, 100.0)
 | Version | Date | Highlights |
 |---------|------|------------|
 | `0.1.0` | TBD | Core complete — tweening, keyframes, timelines, springs, driver, clock, Bevy/WASM integrations |
+| `0.2.0` | March 2026 | Stagger, tween looping, time scale, callbacks, value modifiers, Leptos ergonomics |
+| `0.3.0` | March 2026 | ScrollDriver/ScrollClock, relative timeline positioning (At), Bezier paths, MotionPath |
 
 ---
 
