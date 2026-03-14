@@ -56,6 +56,9 @@ pub mod clock;
 pub mod driver;
 pub mod scroll;
 pub mod path;
+pub mod bezier;
+pub mod motion_path;
+pub mod svg_path;
 pub mod integrations;
 
 // ── Top-level re-exports (ergonomic imports) ──────────────────────────────────
@@ -70,6 +73,9 @@ pub use driver::{AnimationDriver, AnimationId};
 pub use clock::{Clock, ManualClock, MockClock};
 pub use scroll::{ScrollClock, ScrollDriver};
 pub use path::{BezierPath, MotionPath, MotionPathTween, PathEvaluate};
+pub use bezier::{CatmullRomSpline, PathEvaluate2D, tangent_angle, tangent_angle_deg};
+pub use motion_path::{PolyPath, CompoundPath, PathCommand};
+pub use svg_path::SvgPathParser;
 
 #[cfg(feature = "std")]
 pub use clock::WallClock;

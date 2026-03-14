@@ -26,7 +26,7 @@ All core modules are **complete and tested**:
 
 ## Coming Soon (Next Release)
 
-Features inspired by the [GSAP comparison](spanda_vs_gsap_report.md) — bringing the ergonomics of GSAP to Rust.
+Features bringing the ergonomics of GSAP to Rust.
 
 ### Stagger Utilities
 
@@ -141,7 +141,22 @@ let tween = Tween::new(0.0_f32, 100.0)
 - ✅ Quadratic and cubic Bezier path interpolation
 - ✅ `MotionPath` type for complex curves
 
-### 0.4.0 — Spring Generics & Bevy Polish
+### 0.4.0 — Full Motion Path System (GSAP MotionPathPlugin Equivalent) ✅
+
+- ✅ `CatmullRomSpline` — smooth curve through points with tension control
+- ✅ `PathEvaluate2D` trait — evaluate position + tangent at progress t
+- ✅ `PolyPath` — smooth path through `[f32; 2]` arrays with arc-length parameterization
+- ✅ `CompoundPath` — multi-segment path from SVG-style commands (M/L/Q/C/Z)
+- ✅ `SvgPathParser::parse(d_str)` — zero-dependency SVG `d` attribute string parser
+- ✅ Arc-length parameterization (256-sample LUT) for constant-speed traversal
+- ✅ Auto-rotate: `tangent_angle()` / `rotation()` / `rotation_deg()`
+- ✅ Start/end offsets for partial path traversal
+- ✅ Rotation offset for auto-rotate adjustments
+- ✅ CatmullRom `.tension()` parameter (GSAP `curviness` equivalent)
+- ✅ `Easing::CubicBezier(x1, y1, x2, y2)` — CSS cubic-bezier() equivalent
+- ✅ `Easing::Steps(n)` — CSS steps() equivalent
+
+### 0.5.0 — Spring Generics & Bevy Polish
 
 - `Spring<T: Animatable>` — generic springs for 2D/3D physics
 - `SpringN` internal component array approach
@@ -149,14 +164,14 @@ let tween = Tween::new(0.0_f32, 100.0)
 - `TweenCompleted` event system improvements
 - Ship `examples/bevy_bounce.rs`
 
-### 0.5.0 — WASM & Web Polish
+### 0.6.0 — WASM & Web Polish
 
 - `RafDriver` tested end-to-end via `wasm-pack`
 - Ship `examples/wasm_tween/` project
 - Leptos integration guide with working example
 - Dioxus integration guide with working example
 
-### 0.6.0 — Colour & Advanced Interpolation
+### 0.7.0 — Colour & Advanced Interpolation
 
 - `Interpolate` impl for `palette::Srgba` colour types
 - Colour space-aware interpolation (sRGB, Lab, Oklch)
@@ -179,6 +194,7 @@ let tween = Tween::new(0.0_f32, 100.0)
 | `0.1.0` | TBD | Core complete — tweening, keyframes, timelines, springs, driver, clock, Bevy/WASM integrations |
 | `0.2.0` | March 2026 | Stagger, tween looping, time scale, callbacks, value modifiers, Leptos ergonomics |
 | `0.3.0` | March 2026 | ScrollDriver/ScrollClock, relative timeline positioning (At), Bezier paths, MotionPath |
+| `0.4.0` | March 2026 | Full Motion Path System — CatmullRom, PolyPath, CompoundPath, SvgPathParser, arc-length, CSS cubic-bezier/steps easing |
 
 ---
 

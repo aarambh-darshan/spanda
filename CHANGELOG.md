@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] — 2026-03-14
+
+### Added
+
+- **Full Motion Path System** — GSAP MotionPathPlugin equivalent, all outputting
+  raw `[f32; 2]` values:
+  - **CatmullRomSpline** (`bezier.rs`): Smooth curve through ordered 2D points
+    with configurable `tension` parameter (0.0 = straight, 0.5 = standard,
+    >1.0 = exaggerated curvature like GSAP's `curviness`). Automatically
+    converts to cubic Bezier segments for evaluation.
+  - **PathEvaluate2D trait** (`bezier.rs`): Evaluate position and tangent on
+    any 2D curve at progress `t ∈ [0.0, 1.0]`.
+  - **tangent_angle / tangent_angle_deg** (`bezier.rs`): Compute auto-rotation
+    angle from tangent vectors. Equivalent to GSAP's `autoRotate: true`.
+  - **PolyPath** (`motion_path.rs`): Smooth path through `[f32; 2]` point arrays.
+    Uses CatmullRomSpline internally + arc-length parameterization (256-sample
+    LUT) for constant-speed motion. Supports `start_offset`, `end_offset`,
+    `rotation_offset`, and custom tension.
+  - **CompoundPath** (`motion_path.rs`): Multi-segment path from SVG-style
+    commands (MoveTo, LineTo, QuadTo, CubicTo, Close). Arc-length parameterized
+    with the same offset and auto-rotate API as PolyPath.
+  - **PathCommand enum** (`motion_path.rs`): SVG-style path commands for
+    building CompoundPaths programmatically.
+  - **SvgPathParser** (`svg_path.rs`): Zero-dependency SVG `d` attribute parser
+    supporting M/L/H/V/Q/C/Z commands (absolute and relative). Parses strings
+    like `"M 0 0 C 50 100 100 100 150 0 L 200 0"` into `Vec<PathCommand>`.
+    Handles compact notation, negative coordinates, implicit LineTo after MoveTo.
+  - **Easing::CubicBezier(x1, y1, x2, y2)**: CSS `cubic-bezier()` equivalent
+    using Newton-Raphson iteration (8 steps) with bisection fallback (20 steps).
+    Same algorithm used by browsers.
+  - **Easing::Steps(n)**: CSS `steps()` equivalent for discrete step easing.
+- New modules: `src/bezier.rs` (10 unit tests), `src/motion_path.rs` (15 unit
+  tests), `src/svg_path.rs` (12 unit tests)
+- New integration test suite: `tests/motion_path_full.rs` (14 tests) covering
+  CatmullRom, PolyPath, CompoundPath, SvgPathParser, and new easing variants
+- Re-exports in `lib.rs`: `CatmullRomSpline`, `PathEvaluate2D`, `tangent_angle`,
+  `tangent_angle_deg`, `PolyPath`, `CompoundPath`, `PathCommand`, `SvgPathParser`
+
+### Changed
+
+- `Easing` enum extended with `CubicBezier` and `Steps` variants
+- Updated `Easing::apply()`, `Debug`, `PartialEq`, and `name()` for new variants
+
 ## [0.3.0] — 2026-03-14
 
 ### Added

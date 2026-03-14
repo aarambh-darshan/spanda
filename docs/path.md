@@ -256,3 +256,149 @@ Start            End
 ```
 
 The control points "pull" the curve toward them without the curve necessarily passing through them.
+
+---
+
+## Full Motion Path System (0.4.0+)
+
+The advanced motion path system provides GSAP MotionPathPlugin-equivalent functionality. All types output raw `[f32; 2]` values — you decide where to render them.
+
+### CatmullRomSpline
+
+A smooth curve that passes **through** every given point (unlike raw Bezier where control points pull but don't lie on the curve).
+
+```rust
+use spanda::bezier::{CatmullRomSpline, PathEvaluate2D};
+
+let spline = CatmullRomSpline::new(vec![
+    [0.0, 0.0],
+    [100.0, 50.0],
+    [200.0, 0.0],
+    [300.0, 50.0],
+]);
+
+let mid = spline.evaluate([0.0, 0.0], 0.5);
+let tan = spline.tangent([0.0, 0.0], 0.5);
+```
+
+The `tension` parameter controls curviness:
+- `0.0` = straight lines between points
+- `0.5` = standard Catmull-Rom (default)
+- `1.0` = maximum curvature
+- `>1.0` = exaggerated curvature (similar to GSAP `curviness`)
+
+```rust
+let exaggerated = CatmullRomSpline::new(points).tension(1.5);
+```
+
+### PolyPath
+
+A smooth path through `[f32; 2]` point arrays with arc-length parameterization for constant-speed motion:
+
+```rust
+use spanda::motion_path::PolyPath;
+
+let path = PolyPath::from_points(vec![
+    [0.0, 0.0],
+    [100.0, 50.0],
+    [200.0, 0.0],
+]);
+
+let pos = path.position(0.5);      // arc-length parameterized
+let tan = path.tangent(0.5);       // tangent vector
+let rot = path.rotation_deg(0.5);  // auto-rotate angle in degrees
+let len = path.arc_length();       // total curve length
+```
+
+#### Start/End Offsets
+
+Restrict animation to a portion of the path:
+
+```rust
+let path = PolyPath::from_points(points)
+    .start_offset(0.2)   // begin at 20% of the path
+    .end_offset(0.8);    // stop at 80%
+```
+
+#### Rotation Offset
+
+Add a constant rotation offset to the auto-rotate angle:
+
+```rust
+let path = PolyPath::from_points(points)
+    .rotation_offset(90.0);  // +90 degrees
+```
+
+#### Custom Tension
+
+```rust
+let path = PolyPath::from_points_with_tension(points, 1.5);
+```
+
+### CompoundPath
+
+Multi-segment path from SVG-style commands:
+
+```rust
+use spanda::motion_path::{CompoundPath, PathCommand};
+
+let path = CompoundPath::new(vec![
+    PathCommand::MoveTo([0.0, 0.0]),
+    PathCommand::CubicTo {
+        control1: [50.0, 100.0],
+        control2: [100.0, 100.0],
+        end: [150.0, 0.0],
+    },
+    PathCommand::LineTo([200.0, 0.0]),
+    PathCommand::Close,
+]);
+
+let pos = path.position(0.5);
+let rot = path.rotation_deg(0.5);
+```
+
+Supports the same `start_offset`, `end_offset`, and `rotation_offset` as PolyPath.
+
+| Command | Description |
+|---------|-------------|
+| `MoveTo(point)` | Start a new subpath |
+| `LineTo(point)` | Straight line to point |
+| `QuadTo { control, end }` | Quadratic Bezier |
+| `CubicTo { control1, control2, end }` | Cubic Bezier |
+| `Close` | Line back to the last MoveTo point |
+
+### SvgPathParser
+
+Parse SVG `d` attribute strings into `PathCommand` sequences:
+
+```rust
+use spanda::svg_path::SvgPathParser;
+use spanda::motion_path::CompoundPath;
+
+let commands = SvgPathParser::parse("M 0 0 C 50 100 100 100 150 0 L 200 0");
+let path = CompoundPath::new(commands);
+```
+
+Supports: M, L, H, V, Q, C, Z (uppercase = absolute, lowercase = relative).
+
+### CSS Cubic-Bezier Easing
+
+```rust
+use spanda::Easing;
+
+// Equivalent to CSS: cubic-bezier(0.25, 0.1, 0.25, 1.0)
+let ease = Easing::CubicBezier(0.25, 0.1, 0.25, 1.0);
+```
+
+### CSS Steps Easing
+
+```rust
+use spanda::Easing;
+
+// Equivalent to CSS: steps(4)
+let ease = Easing::Steps(4);
+```
+
+### Arc-Length Parameterization
+
+Both `PolyPath` and `CompoundPath` use arc-length parameterization internally, meaning `position(0.5)` returns the point at 50% of the total curve length — not 50% of the parametric `t` value. This produces constant-speed motion along curves of any shape.

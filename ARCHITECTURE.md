@@ -99,6 +99,9 @@ spanda/
     ├── driver.rs            ← AnimationDriver (manages active animations)
     ├── scroll.rs            ← ScrollClock, ScrollDriver (scroll-linked animation)
     ├── path.rs              ← BezierPath, MotionPath, MotionPathTween
+    ├── bezier.rs            ← CatmullRomSpline, PathEvaluate2D (tangent, auto-rotate)
+    ├── motion_path.rs       ← PolyPath, CompoundPath, PathCommand (arc-length param)
+    ├── svg_path.rs          ← SvgPathParser (SVG d-attribute parser)
     └── integrations/
         ├── mod.rs
         ├── bevy.rs          ← SpandaPlugin (feature = "bevy")
@@ -636,6 +639,9 @@ pub use driver::{AnimationDriver, AnimationId};
 pub use clock::{Clock, WallClock, ManualClock, MockClock};
 pub use scroll::{ScrollClock, ScrollDriver};
 pub use path::{BezierPath, MotionPath, MotionPathTween, PathEvaluate};
+pub use bezier::{CatmullRomSpline, PathEvaluate2D, tangent_angle, tangent_angle_deg};
+pub use motion_path::{PolyPath, CompoundPath, PathCommand};
+pub use svg_path::SvgPathParser;
 ```
 
 ---
@@ -1145,8 +1151,9 @@ Before running `cargo publish`:
 | `0.1.0` | Core complete — tweening, keyframes, timelines, springs, driver, clock |
 | `0.2.0` | Ergonomics — stagger, looping, time scale, callbacks, value modifiers |
 | `0.3.0` | Scroll & motion paths — ScrollDriver, At positioning, Bezier paths, MotionPath |
-| `0.4.0` | `spring` generics & Bevy polish |
-| `0.5.0` | `wasm` & web polish |
+| `0.4.0` | Full motion path system — CatmullRom, PolyPath, CompoundPath, SvgPathParser, CSS easing |
+| `0.5.0` | `spring` generics & Bevy polish |
+| `0.6.0` | `wasm` & web polish |
 | `1.0.0` | Stable API, full docs, all examples |
 
 ---
@@ -1246,5 +1253,5 @@ can inspect and mutate them directly without getters.
 
 ---
 
-*Document version: 0.3 — covers planned scope through spanda 1.0.0*
+*Document version: 0.4 — covers planned scope through spanda 1.0.0*
 *Project: Aarambh Dev Hub — github.com/aarambh-darshan/spanda*

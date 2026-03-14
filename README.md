@@ -19,7 +19,9 @@ game engines (Bevy), or native desktop apps.
 - **Callbacks** — `on_start`, `on_update`, `on_complete` on tweens (`std` feature)
 - **Value modifiers** — `snap_to(grid)`, `round_to(decimals)`, custom modifiers
 - **Scroll-linked animation** — `ScrollDriver` / `ScrollClock` for position-driven animations
-- **Motion paths** — quadratic and cubic Bezier interpolation with `MotionPath`
+- **Motion paths** — quadratic/cubic Bezier, CatmullRom splines, SVG path parsing, arc-length parameterization
+- **Full motion path system** — `PolyPath`, `CompoundPath`, `SvgPathParser`, auto-rotate, start/end offsets
+- **CSS easing** — `CubicBezier(x1,y1,x2,y2)` and `Steps(n)` on the `Easing` enum
 - **Animation driver** — manage multiple animations with auto-cleanup
 - **Clock abstraction** — wall clock, manual clock, scroll clock, and mock clock for testing
 
@@ -27,7 +29,7 @@ game engines (Bevy), or native desktop apps.
 
 ```toml
 [dependencies]
-spanda = "0.3"
+spanda = "0.4"
 ```
 
 ### Quick Example
@@ -150,6 +152,50 @@ tween.update(1.0);
 let pos = tween.value(); // position along the curve
 ```
 
+### Smooth Path Through Points (PolyPath)
+
+```rust
+use spanda::motion_path::PolyPath;
+
+let path = PolyPath::from_points(vec![
+    [0.0, 0.0],
+    [100.0, 50.0],
+    [200.0, 0.0],
+    [300.0, 50.0],
+]);
+
+let pos = path.position(0.5);     // arc-length parameterized
+let angle = path.rotation_deg(0.5); // auto-rotate angle
+```
+
+### SVG Path Parsing
+
+```rust
+use spanda::svg_path::SvgPathParser;
+use spanda::motion_path::CompoundPath;
+
+let commands = SvgPathParser::parse("M 0 0 C 50 100 100 100 150 0 L 200 0");
+let path = CompoundPath::new(commands)
+    .start_offset(0.1)
+    .end_offset(0.9);
+
+let pos = path.position(0.5);
+```
+
+### CSS Cubic-Bezier Easing
+
+```rust
+use spanda::{Tween, Easing};
+use spanda::traits::Update;
+
+let mut tween = Tween::new(0.0_f32, 100.0)
+    .duration(1.0)
+    .easing(Easing::CubicBezier(0.25, 0.1, 0.25, 1.0)) // CSS ease
+    .build();
+
+tween.update(0.5);
+```
+
 ### Sequence Composition
 
 ```rust
@@ -220,7 +266,7 @@ cargo test --tests        # integration tests only
 src/
 ├── lib.rs           — crate root, re-exports
 ├── traits.rs        — Interpolate, Animatable, Update
-├── easing.rs        — 31 easing functions + Easing enum
+├── easing.rs        — 33 easing functions + CubicBezier + Steps
 ├── tween.rs         — Tween<T>, TweenBuilder, TweenState
 ├── keyframe.rs      — KeyframeTrack, Keyframe, Loop
 ├── timeline.rs      — Timeline, Sequence, At, stagger
@@ -229,6 +275,9 @@ src/
 ├── driver.rs        — AnimationDriver, AnimationId
 ├── scroll.rs        — ScrollClock, ScrollDriver
 ├── path.rs          — BezierPath, MotionPath, MotionPathTween
+├── bezier.rs        — CatmullRomSpline, PathEvaluate2D
+├── motion_path.rs   — PolyPath, CompoundPath, PathCommand
+├── svg_path.rs      — SvgPathParser (SVG d-attribute parser)
 └── integrations/
     ├── mod.rs
     ├── bevy.rs      — SpandaPlugin  (feature = "bevy")

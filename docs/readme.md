@@ -26,12 +26,12 @@ This architecture makes spanda work **everywhere**:
 | Module | Description | Guide |
 |--------|-------------|-------|
 | **Tween** | Animate a single value from A to B with easing, looping, callbacks | [tween.md](tween.md) |
-| **Easing** | 31 built-in easing curves + custom functions | [easing.md](easing.md) |
+| **Easing** | 33 easing curves + CubicBezier + Steps | [easing.md](easing.md) |
 | **Keyframes** | Multi-stop animation with per-segment easing | [keyframe.md](keyframe.md) |
 | **Timeline & Sequence** | Compose animations concurrently or sequentially | [timeline.md](timeline.md) |
 | **Spring** | Physics-based damped harmonic oscillator | [spring.md](spring.md) |
 | **Scroll** | Scroll-linked animations with ScrollDriver/ScrollClock | [scroll.md](scroll.md) |
-| **Motion Paths** | Bezier curves and multi-segment motion paths | [path.md](path.md) |
+| **Motion Paths** | Bezier curves, CatmullRom, PolyPath, CompoundPath, SVG parser | [path.md](path.md) |
 | **Driver & Clock** | Manage multiple animations with time abstraction | [integrations.md](integrations.md) |
 
 ---
@@ -42,7 +42,7 @@ Add `spanda` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-spanda = "0.3"
+spanda = "0.4"
 ```
 
 ### Basic Tween
@@ -299,7 +299,7 @@ impl Interpolate for Color {
 src/
 ├── lib.rs           — crate root, re-exports
 ├── traits.rs        — Interpolate, Animatable, Update
-├── easing.rs        — 31 easing functions + Easing enum
+├── easing.rs        — 33 easing functions + CubicBezier + Steps
 ├── tween.rs         — Tween<T>, TweenBuilder, TweenState
 ├── keyframe.rs      — KeyframeTrack, Keyframe, Loop
 ├── timeline.rs      — Timeline, Sequence, At, stagger
@@ -308,6 +308,9 @@ src/
 ├── driver.rs        — AnimationDriver, AnimationDriverArc, AnimationId
 ├── scroll.rs        — ScrollClock, ScrollDriver
 ├── path.rs          — BezierPath, MotionPath, MotionPathTween
+├── bezier.rs        — CatmullRomSpline, PathEvaluate2D
+├── motion_path.rs   — PolyPath, CompoundPath, PathCommand
+├── svg_path.rs      — SvgPathParser (SVG d-attribute parser)
 └── integrations/
     ├── mod.rs
     ├── bevy.rs      — SpandaPlugin  (feature = "bevy")
