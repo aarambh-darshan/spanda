@@ -36,8 +36,7 @@
 11. [Performance Considerations](#11-performance-considerations)
 12. [Publishing Checklist (crates.io)](#12-publishing-checklist-cratesio)
 13. [Suggested Build Order](#13-suggested-build-order)
-14. [YouTube Series Plan](#14-youtube-series-plan)
-15. [Naming Conventions](#15-naming-conventions)
+14. [Naming Conventions](#14-naming-conventions)
 
 ---
 
@@ -1203,38 +1202,7 @@ Step 13 ──  Publish 0.1.0
 
 ---
 
-## 14. YouTube Series Plan
-
-The `spanda` crate is excellent content for Aarambh Dev Hub because each module
-is a standalone teachable concept.
-
-### Suggested episode structure
-
-| Episode | Title | Covers |
-|---------|-------|--------|
-| 1 | *What is animation? Building the core traits* | `traits.rs`, `Interpolate`, blanket impls |
-| 2 | *31 easing functions from scratch in Rust* | `easing.rs`, pure math, the enum pattern |
-| 3 | *Your first tween — smooth motion in the terminal* | `tween.rs` + TUI demo |
-| 4 | *Clocks and drivers — managing many animations at once* | `clock.rs`, `driver.rs` |
-| 5 | *Keyframe animations — Disney's 12 principles in code* | `keyframe.rs` |
-| 6 | *Timeline sequencing — building an animation mixer* | `timeline.rs`, `Sequence` |
-| 7 | *Physics-based animation — springs feel real* | `spring.rs`, the math explained |
-| 8 | *Shipping to crates.io — the full publish workflow* | Publishing, docs, CHANGELOG |
-| 9 | *Bevy plugin — spanda in a game engine* | `integrations/bevy.rs` |
-| 10 | *WASM — animate the web with Rust* | `integrations/wasm.rs`, wasm-pack |
-
-### Each episode template
-
-1. Cold open — show the final demo running (30 sec)
-2. Explain the concept from first principles (3–5 min)
-3. Write the code from scratch, line by line (10–15 min)
-4. Run tests live (2 min)
-5. Show the demo again (1 min)
-6. *"Thanks for watching and happy coding!"*
-
----
-
-## 15. Naming Conventions
+## 14. Naming Conventions
 
 ### Crate name
 
