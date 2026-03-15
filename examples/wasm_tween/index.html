@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>spanda — WASM Tween Demo</title>
+    <link data-trunk rel="rust" data-wasm-opt="z" />
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a2e;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        h1 {
+            margin-top: 2rem;
+            color: #00d4ff;
+        }
+        .stage {
+            position: relative;
+            width: 600px;
+            height: 300px;
+            background: #16213e;
+            border-radius: 12px;
+            margin: 2rem 0;
+            overflow: hidden;
+            border: 1px solid #0f3460;
+        }
+        .ball {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #00d4ff, #0077b6);
+            top: 50%;
+            transform: translateY(-50%);
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.4);
+        }
+        .controls {
+            display: flex;
+            gap: 1rem;
+        }
+        button {
+            padding: 0.5rem 1.5rem;
+            background: #0f3460;
+            color: #00d4ff;
+            border: 1px solid #00d4ff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        button:hover { background: #1a4975; }
+        #status { margin-top: 1rem; font-size: 0.9rem; color: #888; }
+    </style>
+</head>
+<body>
+    <h1>spanda — WASM Animation</h1>
+    <div class="stage">
+        <div class="ball" id="ball"></div>
+    </div>
+    <div class="controls">
+        <button onclick="restart()">Restart</button>
+        <button onclick="togglePause()">Pause / Resume</button>
+    </div>
+    <p id="status">Loading WASM...</p>
+</body>
+</html>

@@ -168,13 +168,85 @@ Springs guard against degenerate configurations:
 
 ---
 
-## Bevy Integration
+## Multi-Dimensional Springs: `SpringN<T>`
 
-With the `bevy` feature, `Spring` is a Bevy `Component`. The `SpandaPlugin` automatically ticks all Spring components using Bevy's `Time` resource:
+`Spring` animates a single `f32`. For 2D, 3D, or 4D (RGBA) values, use `SpringN`:
 
 ```rust
+use spanda::spring::{SpringN, SpringConfig};
+use spanda::traits::Update;
+
+// 2D position spring
+let mut spring = SpringN::new(SpringConfig::wobbly(), [0.0_f32, 0.0]);
+spring.set_target([100.0, 200.0]);
+
+for _ in 0..1000 {
+    spring.update(1.0 / 60.0);
+}
+
+let pos = spring.position(); // [f32; 2]
+```
+
+### Supported Types
+
+| Type | Use Case |
+|------|----------|
+| `f32` | Single axis (opacity, rotation, size) |
+| `[f32; 2]` | 2D position, UV coordinates |
+| `[f32; 3]` | 3D position, RGB colour |
+| `[f32; 4]` | RGBA colour, quaternion-like |
+
+### Custom Types
+
+Implement `SpringAnimatable` on your own types:
+
+```rust
+use spanda::spring::SpringAnimatable;
+
+#[derive(Clone)]
+struct Point { x: f32, y: f32 }
+
+impl SpringAnimatable for Point {
+    fn to_components(&self) -> Vec<f32> {
+        vec![self.x, self.y]
+    }
+    fn from_components(c: &[f32]) -> Self {
+        Point { x: c[0], y: c[1] }
+    }
+}
+```
+
+### SpringN Key Methods
+
+| Method | Description |
+|--------|-------------|
+| `SpringN::new(config, initial)` | Create with initial value |
+| `.set_target(value)` | Set a new target (velocity preserved) |
+| `.position()` | Current value as `T` |
+| `.position_components()` | Raw per-component positions |
+| `.velocity_components()` | Raw per-component velocities |
+| `.is_settled()` | Whether all components are within epsilon |
+| `.reset()` | Reset all positions/velocities to zero |
+| `.update(dt)` | Advance physics (returns `false` when settled) |
+
+---
+
+## Bevy Integration
+
+With the `bevy` feature, `Spring` is a Bevy `Component`. The `SpandaPlugin` automatically ticks all Spring components using Bevy's `Time` resource and fires `SpringSettled` events when they come to rest:
+
+```rust
+use spanda::integrations::bevy::{SpandaPlugin, SpringSettled};
+
 commands.spawn((
     SpriteBundle { /* ... */ },
     Spring::new(SpringConfig::wobbly()),
 ));
+
+// Listen for settled events
+fn on_rest(mut events: EventReader<SpringSettled>) {
+    for ev in events.read() {
+        println!("Spring on {:?} settled", ev.entity);
+    }
+}
 ```

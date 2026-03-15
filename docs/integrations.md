@@ -134,13 +134,15 @@ If you use [Bevy](https://bevyengine.org), activate the `bevy` feature:
 
 ```toml
 [dependencies]
-spanda = { version = "0.1", features = ["bevy"] }
+spanda = { version = "0.6", features = ["bevy"] }
 ```
 
 This adds `SpandaPlugin`, which automatically:
-- Registers `Tween<f32>` and `Spring` as ECS **Components**
+- Registers `Tween<f32>`, `Tween<[f32;2]>`, `Tween<[f32;3]>`, `Tween<[f32;4]>` as ECS **Components**
+- Registers `Spring` as an ECS **Component**
 - Ticks them in the `Update` schedule using Bevy's `Time` resource
 - Fires `TweenCompleted` events when tweens finish
+- Fires `SpringSettled` events when springs reach their target
 
 ```rust
 use bevy::prelude::*;
@@ -195,10 +197,10 @@ Activate the `wasm` feature:
 
 ```toml
 [dependencies]
-spanda = { version = "0.1", features = ["wasm"] }
+spanda = { version = "0.6", features = ["wasm"] }
 ```
 
-Use `RafDriver` — pass it the high-resolution timestamp from JavaScript:
+Use `RafDriver` — pass it the high-resolution timestamp from JavaScript.  New in 0.6: pause/resume, time scale, visibility change handling, and `start_raf_loop`:
 
 ```rust
 use spanda::integrations::wasm::RafDriver;
@@ -221,12 +223,39 @@ impl App {
     pub fn tick(&mut self, timestamp_ms: f64) {
         self.driver.tick(timestamp_ms);
     }
+
+    pub fn pause(&mut self) { self.driver.pause(); }
+    pub fn resume(&mut self) { self.driver.resume(); }
+
+    // Handle tab visibility changes
+    pub fn on_visibility_change(&mut self, hidden: bool) {
+        self.driver.on_visibility_change(hidden);
+    }
 }
+```
+
+#### Automatic rAF Loop
+
+Use `start_raf_loop` to avoid manual `requestAnimationFrame` scheduling:
+
+```rust
+use spanda::integrations::wasm::{RafDriver, start_raf_loop};
+use std::rc::Rc;
+use std::cell::RefCell;
+
+let driver = Rc::new(RefCell::new(RafDriver::new()));
+let d = driver.clone();
+
+start_raf_loop(move |timestamp_ms| {
+    d.borrow_mut().tick(timestamp_ms);
+});
 ```
 
 ### Leptos Integration Pattern
 
-In Leptos, spanda's `on_update` callback bridges animation values directly into signals — no manual polling needed:
+In Leptos, spanda's `on_update` callback bridges animation values directly into signals — no manual polling needed.
+
+See the full [Leptos Integration Guide](leptos_guide.md) for complete examples including staggered lists and spring-driven drag.
 
 ```rust
 use leptos::*;
@@ -308,7 +337,9 @@ fn StaggeredList(items: Vec<String>) -> impl IntoView {
 
 ### Dioxus Integration Pattern
 
-In Dioxus, use a coroutine or `use_future` for animation loops:
+In Dioxus, use a coroutine or `use_future` for animation loops.
+
+See the full [Dioxus Integration Guide](dioxus_guide.md) for complete examples including springs, staggered animations, and RafDriver.
 
 ```rust
 use dioxus::prelude::*;
@@ -316,28 +347,28 @@ use spanda::tween::Tween;
 use spanda::easing::Easing;
 use spanda::traits::Update;
 
-fn AnimatedBox(cx: Scope) -> Element {
-    let opacity = use_state(cx, || 0.0_f32);
-    
-    use_future(cx, (), |_| {
-        let opacity = opacity.clone();
-        async move {
-            let mut tween = Tween::new(0.0_f32, 1.0)
-                .duration(1.0)
-                .easing(Easing::EaseOutCubic)
-                .build();
-            
-            while tween.update(1.0 / 60.0) {
-                opacity.set(tween.value());
-                // await next frame
-            }
+#[component]
+fn AnimatedBox() -> Element {
+    let mut opacity = use_signal(|| 0.0_f32);
+
+    use_coroutine(move |_: UnboundedReceiver<()>| async move {
+        let mut tween = Tween::new(0.0_f32, 1.0)
+            .duration(1.0)
+            .easing(Easing::EaseOutCubic)
+            .build();
+
+        loop {
+            if !tween.update(1.0 / 60.0) { break; }
+            opacity.set(tween.value());
+            gloo_timers::future::TimeoutFuture::new(16).await;
         }
     });
-    
-    render! {
-        div { opacity: "{opacity}", "Fading in..." }
+
+    rsx! {
+        div { style: "opacity: {opacity};", "Fading in..." }
     }
 }
+```
 ```
 
 ---

@@ -30,10 +30,63 @@ use crate::traits::Animatable;
 // ── TweenCompleted event ─────────────────────────────────────────────────────
 
 /// Event fired when a [`Tween`] component completes its animation.
+///
+/// Listen for this event in your systems to trigger follow-up logic:
+///
+/// ```rust,ignore
+/// fn on_tween_done(mut events: EventReader<TweenCompleted>) {
+///     for ev in events.read() {
+///         println!("Entity {:?} finished tweening!", ev.entity);
+///     }
+/// }
+/// ```
 #[derive(Event)]
 pub struct TweenCompleted {
     /// The entity whose tween just completed.
     pub entity: Entity,
+}
+
+// ── SpringSettled event ──────────────────────────────────────────────────────
+
+/// Event fired when a [`Spring`] component settles to its target.
+///
+/// Listen for this event to trigger logic once a spring-driven animation
+/// reaches its resting state:
+///
+/// ```rust,ignore
+/// fn on_spring_rest(mut events: EventReader<SpringSettled>) {
+///     for ev in events.read() {
+///         println!("Entity {:?} spring settled!", ev.entity);
+///     }
+/// }
+/// ```
+#[derive(Event)]
+pub struct SpringSettled {
+    /// The entity whose spring just settled.
+    pub entity: Entity,
+}
+
+// ── AnimationLabel component ─────────────────────────────────────────────────
+
+/// Optional label component to identify animations by name in event handlers.
+///
+/// ```rust,ignore
+/// commands.spawn((
+///     Tween::new(0.0_f32, 1.0).duration(0.5).build(),
+///     AnimationLabel::new("fade_in"),
+/// ));
+/// ```
+#[derive(Component, Clone, Debug)]
+pub struct AnimationLabel {
+    /// The string label for this animation.
+    pub label: &'static str,
+}
+
+impl AnimationLabel {
+    /// Create a new animation label.
+    pub fn new(label: &'static str) -> Self {
+        Self { label }
+    }
 }
 
 // ── SpandaPlugin ─────────────────────────────────────────────────────────────
@@ -48,12 +101,14 @@ pub struct TweenCompleted {
 /// - `spanda_tick_tween_vec3` system — ticks all `Tween<[f32; 3]>` components
 /// - `spanda_tick_tween_vec4` system — ticks all `Tween<[f32; 4]>` components
 /// - `spanda_tick_spring` system — ticks all `Spring` components
-/// - `TweenCompleted` event
+/// - `TweenCompleted` event — fires when a tween finishes
+/// - `SpringSettled` event — fires when a spring reaches its target
 pub struct SpandaPlugin;
 
 impl Plugin for SpandaPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<TweenCompleted>()
+            .add_event::<SpringSettled>()
             .add_systems(
                 Update,
                 (
@@ -85,10 +140,18 @@ fn spanda_tick_tween<T: Animatable + Send + Sync>(
     }
 }
 
-/// Tick all `Spring` components.
-fn spanda_tick_spring(time: Res<Time>, mut query: Query<&mut Spring>) {
+/// Tick all `Spring` components and fire `SpringSettled` when they rest.
+fn spanda_tick_spring(
+    time: Res<Time>,
+    mut query: Query<(Entity, &mut Spring)>,
+    mut events: EventWriter<SpringSettled>,
+) {
     let dt = time.delta_seconds();
-    for mut spring in query.iter_mut() {
+    for (entity, mut spring) in query.iter_mut() {
+        let was_settled = spring.is_settled();
         spring.update(dt);
+        if !was_settled && spring.is_settled() {
+            events.send(SpringSettled { entity });
+        }
     }
 }
