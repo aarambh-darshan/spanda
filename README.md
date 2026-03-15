@@ -22,6 +22,7 @@ game engines (Bevy), or native desktop apps.
 - **Motion paths** — quadratic/cubic Bezier, CatmullRom splines, SVG path parsing, arc-length parameterization
 - **Full motion path system** — `PolyPath`, `CompoundPath`, `SvgPathParser`, auto-rotate, start/end offsets
 - **CSS easing** — `CubicBezier(x1,y1,x2,y2)` and `Steps(n)` on the `Easing` enum
+- **Colour animation** — 9 palette types + `InLab`/`InOklch`/`InLinear` colour-space-aware wrappers (`palette` feature)
 - **Animation driver** — manage multiple animations with auto-cleanup
 - **Clock abstraction** — wall clock, manual clock, scroll clock, and mock clock for testing
 
@@ -29,7 +30,7 @@ game engines (Bevy), or native desktop apps.
 
 ```toml
 [dependencies]
-spanda = "0.6"
+spanda = "0.7"
 ```
 
 ### Quick Example
@@ -213,6 +214,27 @@ let mut tween = Tween::new(0.0_f32, 100.0)
 tween.update(0.5);
 ```
 
+### Colour Animation (palette feature)
+
+```rust,ignore
+use palette::Srgba;
+use spanda::{Tween, Easing};
+use spanda::colour::InLab;
+use spanda::traits::Update;
+
+// Interpolate in CIE L*a*b* for perceptually smooth gradients
+let mut tween = Tween::new(
+    InLab(Srgba::new(1.0, 0.0, 0.0, 1.0)),  // red
+    InLab(Srgba::new(0.0, 0.0, 1.0, 1.0)),  // blue
+)
+    .duration(1.0)
+    .easing(Easing::EaseInOutCubic)
+    .build();
+
+tween.update(0.5);
+let colour = tween.value().0;  // Srgba
+```
+
 ### Sequence Composition
 
 ```rust
@@ -298,6 +320,7 @@ src/
 ├── bezier.rs        — CatmullRomSpline, PathEvaluate2D
 ├── motion_path.rs   — PolyPath, CompoundPath, PathCommand
 ├── svg_path.rs      — SvgPathParser (SVG d-attribute parser)
+├── colour.rs        — colour interpolation (feature = "palette")
 └── integrations/
     ├── mod.rs
     ├── bevy.rs      — SpandaPlugin  (feature = "bevy")

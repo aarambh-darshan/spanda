@@ -173,11 +173,14 @@ let tween = Tween::new(0.0_f32, 100.0)
 - ✅ Leptos integration guide with working examples (`docs/leptos_guide.md`)
 - ✅ Dioxus integration guide with working examples (`docs/dioxus_guide.md`)
 
-### 0.7.0 — Colour & Advanced Interpolation
+### 0.7.0 — Colour & Advanced Interpolation ✅
 
-- `Interpolate` impl for `palette::Srgba` colour types
-- Colour space-aware interpolation (sRGB, Lab, Oklch)
-- Ship colour animation examples
+- ✅ `Interpolate` impl for 9 `palette` colour types (Srgba, Srgb, LinSrgba, LinSrgb, Laba, Lab, Oklcha, Oklch, Hsla)
+- ✅ Colour space-aware interpolation (sRGB, Lab, Oklch, linear RGB) via `InLab`, `InOklch`, `InLinear` wrappers
+- ✅ Shortest-arc hue interpolation for hue-based types
+- ✅ `SpringAnimatable` impls for palette colour types
+- ✅ Convenience functions: `lerp_in_lab`, `lerp_in_oklch`, `lerp_in_linear`
+- ✅ Ship colour animation example (`examples/colour_demo.rs`)
 
 ### 1.0.0 — Stable
 
@@ -199,6 +202,7 @@ let tween = Tween::new(0.0_f32, 100.0)
 | `0.4.0` | March 2026 | Full Motion Path System — CatmullRom, PolyPath, CompoundPath, SvgPathParser, arc-length, CSS cubic-bezier/steps easing |
 | `0.5.0` | March 2026 | SpringN<T> generic springs, SpringSettled event, AnimationLabel, bevy_bounce example |
 | `0.6.0` | March 2026 | WASM RafDriver enhancements (pause/resume/visibility), start_raf_loop, Leptos & Dioxus guides |
+| `0.7.0` | March 2026 | Colour interpolation — 9 palette types, InLab/InOklch/InLinear wrappers, SpringAnimatable, colour_demo |
 
 ---
 

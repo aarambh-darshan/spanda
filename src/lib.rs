@@ -61,6 +61,9 @@ pub mod motion_path;
 pub mod svg_path;
 pub mod integrations;
 
+#[cfg(feature = "palette")]
+pub mod colour;
+
 // ── Top-level re-exports (ergonomic imports) ──────────────────────────────────
 
 pub use easing::Easing;
@@ -79,3 +82,6 @@ pub use svg_path::SvgPathParser;
 
 #[cfg(feature = "std")]
 pub use clock::WallClock;
+
+#[cfg(feature = "palette")]
+pub use colour::{lerp_in_lab, lerp_in_linear, lerp_in_oklch, InLab, InLinear, InOklch};

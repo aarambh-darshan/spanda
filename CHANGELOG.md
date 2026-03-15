@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] — 2026-03-15
+
+### Added
+
+- **Colour interpolation** (`palette` feature):
+  - `Interpolate` impls for 9 palette types: `Srgba`, `Srgb`, `LinSrgba`,
+    `LinSrgb`, `Laba`, `Lab`, `Oklcha`, `Oklch`, `Hsla`
+  - Shortest-arc hue interpolation for hue-based types (Oklch, Hsl)
+  - `SpringAnimatable` impls for palette colour types (use with `SpringN`)
+- **Colour-space-aware wrappers** — interpolate in a perceptual space while
+  keeping sRGB start/end values:
+  - `InLab(Srgba)` — CIE L\*a\*b\* for perceptually smooth gradients
+  - `InOklch(Srgba)` — OKLCh for smooth hue rotation
+  - `InLinear(Srgba)` — linear RGB for physically correct blending
+  - All wrappers work with `Tween<T>`, `KeyframeTrack<T>`, `SpringN<T>`
+- **Convenience functions**: `lerp_in_lab()`, `lerp_in_oklch()`, `lerp_in_linear()`
+- New module: `src/colour.rs` (gated behind `palette` feature)
+- New example: `examples/colour_demo.rs` — terminal gradient comparison
+- New integration test: `tests/colour_interpolation.rs` (7 tests)
+- New documentation: `docs/colour.md`
+
 ## [0.6.0] — 2026-03-15
 
 ### Added

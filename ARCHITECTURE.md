@@ -102,6 +102,7 @@ spanda/
     ├── bezier.rs            ← CatmullRomSpline, PathEvaluate2D (tangent, auto-rotate)
     ├── motion_path.rs       ← PolyPath, CompoundPath, PathCommand (arc-length param)
     ├── svg_path.rs          ← SvgPathParser (SVG d-attribute parser)
+    ├── colour.rs            ← colour interpolation (feature = "palette")
     └── integrations/
         ├── mod.rs
         ├── bevy.rs          ← SpandaPlugin (feature = "bevy")
@@ -1154,6 +1155,7 @@ Before running `cargo publish`:
 | `0.4.0` | Full motion path system — CatmullRom, PolyPath, CompoundPath, SvgPathParser, CSS easing |
 | `0.5.0` | `spring` generics & Bevy polish — SpringN<T>, SpringSettled event, AnimationLabel |
 | `0.6.0` | `wasm` & web polish — RafDriver enhancements, start_raf_loop, Leptos/Dioxus guides |
+| `0.7.0` | Colour & advanced interpolation — 9 palette types, InLab/InOklch/InLinear, SpringAnimatable |
 | `1.0.0` | Stable API, full docs, all examples |
 
 ---
@@ -1253,5 +1255,5 @@ can inspect and mutate them directly without getters.
 
 ---
 
-*Document version: 0.6 — covers planned scope through spanda 1.0.0*
+*Document version: 0.7 — covers planned scope through spanda 1.0.0*
 *Project: Aarambh Dev Hub — github.com/aarambh-darshan/spanda*

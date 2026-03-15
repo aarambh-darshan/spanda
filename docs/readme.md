@@ -32,6 +32,7 @@ This architecture makes spanda work **everywhere**:
 | **Spring** | Physics-based damped harmonic oscillator + generic SpringN<T> | [spring.md](spring.md) |
 | **Scroll** | Scroll-linked animations with ScrollDriver/ScrollClock | [scroll.md](scroll.md) |
 | **Motion Paths** | Bezier curves, CatmullRom, PolyPath, CompoundPath, SVG parser | [path.md](path.md) |
+| **Colour** | 9 palette types, InLab/InOklch/InLinear colour-space wrappers | [colour.md](colour.md) |
 | **Driver & Clock** | Manage multiple animations with time abstraction | [integrations.md](integrations.md) |
 | **Leptos** | Reactive signal integration guide | [leptos_guide.md](leptos_guide.md) |
 | **Dioxus** | Coroutine-based animation guide | [dioxus_guide.md](dioxus_guide.md) |
@@ -44,7 +45,7 @@ Add `spanda` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-spanda = "0.6"
+spanda = "0.7"
 ```
 
 ### Basic Tween
@@ -171,6 +172,27 @@ tween.update(1.0);
 let pos = tween.value();
 ```
 
+### Colour Animation (palette feature)
+
+```rust,ignore
+use palette::Srgba;
+use spanda::{Tween, Easing};
+use spanda::colour::InLab;
+use spanda::traits::Update;
+
+// Interpolate in CIE L*a*b* for perceptually smooth gradients
+let mut tween = Tween::new(
+    InLab(Srgba::new(1.0, 0.0, 0.0, 1.0)),  // red
+    InLab(Srgba::new(0.0, 0.0, 1.0, 1.0)),  // blue
+)
+    .duration(1.0)
+    .easing(Easing::EaseInOutCubic)
+    .build();
+
+tween.update(0.5);
+let colour = tween.value().0;  // Srgba
+```
+
 ### Using the Animation Driver
 
 ```rust
@@ -243,7 +265,7 @@ assert_eq!(driver.active_count(), 0); // completed animations are auto-removed
         ▼              ▼              ▼              ▼
    ┌─────────────────────────────────────────────────┐
    │         Interpolate / Animatable                │
-   │   (f32, f64, [f32;2..4], i32, custom types)    │
+   │   (f32, f64, [f32;2..4], i32, palette colours) │
    └─────────────────────────────────────────────────┘
 ```
 
@@ -313,6 +335,7 @@ src/
 ├── bezier.rs        — CatmullRomSpline, PathEvaluate2D
 ├── motion_path.rs   — PolyPath, CompoundPath, PathCommand
 ├── svg_path.rs      — SvgPathParser (SVG d-attribute parser)
+├── colour.rs        — colour interpolation (feature = "palette")
 └── integrations/
     ├── mod.rs
     ├── bevy.rs      — SpandaPlugin  (feature = "bevy")
