@@ -156,20 +156,22 @@ let tween = Tween::new(0.0_f32, 100.0)
 - ✅ `Easing::CubicBezier(x1, y1, x2, y2)` — CSS cubic-bezier() equivalent
 - ✅ `Easing::Steps(n)` — CSS steps() equivalent
 
-### 0.5.0 — Spring Generics & Bevy Polish
+### 0.5.0 — Spring Generics & Bevy Polish ✅
 
-- `Spring<T: Animatable>` — generic springs for 2D/3D physics
-- `SpringN` internal component array approach
-- Bevy `SpandaPlugin` tested against latest Bevy version
-- `TweenCompleted` event system improvements
-- Ship `examples/bevy_bounce.rs`
+- ✅ `SpringN<T: SpringAnimatable>` — generic springs for 2D/3D/4D physics
+- ✅ `SpringAnimatable` trait — component array approach (to_components/from_components)
+- ✅ Bevy `SpandaPlugin` enhanced with `SpringSettled` event
+- ✅ `AnimationLabel` component for named animations in Bevy
+- ✅ `TweenCompleted` event system working (was already in 0.1.0)
+- ✅ Ship `examples/bevy_bounce.rs`
 
-### 0.6.0 — WASM & Web Polish
+### 0.6.0 — WASM & Web Polish ✅
 
-- `RafDriver` tested end-to-end via `wasm-pack`
-- Ship `examples/wasm_tween/` project
-- Leptos integration guide with working example
-- Dioxus integration guide with working example
+- ✅ `RafDriver` enhanced: pause/resume, time scale, visibility handling, dt capping
+- ✅ `start_raf_loop(callback)` — self-scheduling rAF loop helper
+- ✅ Ship `examples/wasm_tween/` project (Cargo.toml + lib.rs + index.html)
+- ✅ Leptos integration guide with working examples (`docs/leptos_guide.md`)
+- ✅ Dioxus integration guide with working examples (`docs/dioxus_guide.md`)
 
 ### 0.7.0 — Colour & Advanced Interpolation
 
@@ -195,6 +197,8 @@ let tween = Tween::new(0.0_f32, 100.0)
 | `0.2.0` | March 2026 | Stagger, tween looping, time scale, callbacks, value modifiers, Leptos ergonomics |
 | `0.3.0` | March 2026 | ScrollDriver/ScrollClock, relative timeline positioning (At), Bezier paths, MotionPath |
 | `0.4.0` | March 2026 | Full Motion Path System — CatmullRom, PolyPath, CompoundPath, SvgPathParser, arc-length, CSS cubic-bezier/steps easing |
+| `0.5.0` | March 2026 | SpringN<T> generic springs, SpringSettled event, AnimationLabel, bevy_bounce example |
+| `0.6.0` | March 2026 | WASM RafDriver enhancements (pause/resume/visibility), start_raf_loop, Leptos & Dioxus guides |
 
 ---
 

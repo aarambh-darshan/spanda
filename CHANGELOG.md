@@ -5,7 +5,54 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.0] — 2026-03-14
+## [0.6.0] — 2026-03-15
+
+### Added
+
+- **WASM RafDriver enhancements**:
+  - `pause()` / `resume()` / `is_paused()` — pause/resume animation playback
+  - `set_time_scale(scale)` / `get_time_scale()` — global speed control
+  - `on_visibility_change(hidden)` — handle page visibility changes (resets
+    timestamp to avoid jumps after tab switch)
+  - Automatic dt capping at 500ms to prevent huge jumps after tab inactivity
+  - `driver()` / `driver_mut()` — access the inner `AnimationDriver`
+- **`start_raf_loop(callback)`** (`wasm` feature): Self-scheduling
+  `requestAnimationFrame` loop that calls a closure every frame. No more
+  manual rAF management in JavaScript.
+- **`examples/wasm_tween/`**: Complete WASM example project with `Cargo.toml`,
+  `src/lib.rs`, and `index.html`. Shows how to build an animated web app
+  with `wasm-pack build --target web`.
+- **Leptos integration guide** (`docs/leptos_guide.md`): Complete guide with
+  4 patterns — basic fade, staggered list, spring-driven drag, RafDriver
+- **Dioxus integration guide** (`docs/dioxus_guide.md`): Complete guide with
+  4 patterns — basic fade, staggered cards, spring follower, RafDriver
+- Updated `docs/integrations.md` with new WASM features, Leptos/Dioxus
+  cross-references, and Dioxus 0.5 API examples
+
+## [0.5.0] — 2026-03-15
+
+### Added
+
+- **`SpringN<T: SpringAnimatable>`** — generic multi-dimensional spring that
+  internally manages one position+velocity pair per component. Same physics
+  as `Spring` (semi-implicit Euler, sub-stepping, epsilon settle detection).
+  Built-in support for `f32`, `[f32; 2]`, `[f32; 3]`, `[f32; 4]`.
+- **`SpringAnimatable` trait** — decompose/reconstruct types as `Vec<f32>`
+  component arrays. Implement on custom types to use them with `SpringN`.
+- **`SpringSettled` event** (Bevy): Fired when a `Spring` component settles
+  to its target. Complements the existing `TweenCompleted` event.
+- **`AnimationLabel` component** (Bevy): Optional label for identifying
+  animations by name in event handlers.
+- Updated `SpandaPlugin` to fire `SpringSettled` events (was only tracking
+  `TweenCompleted` before).
+- `SpringN`, `SpringAnimatable` re-exported from `lib.rs`
+- **`examples/bevy_bounce.rs`**: Demonstrates `SpandaPlugin`, `Spring`,
+  `SpringN`, `TweenCompleted`, and `SpringSettled` events
+- New integration test: `tests/spring_generic.rs` (7 tests) covering
+  2D/3D/4D springs, retarget mid-flight, overshoot, f32 parity
+- Updated `docs/spring.md` with `SpringN` documentation, custom types,
+  and `SpringSettled` event guide
+- 10 new unit tests for `SpringN` in `src/spring.rs`
 
 ### Added
 

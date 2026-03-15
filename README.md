@@ -13,7 +13,7 @@ game engines (Bevy), or native desktop apps.
 - **Timeline & Sequence** — compose animations concurrently or sequentially
 - **Relative positioning** — GSAP-style `At::Start`, `At::End`, `At::Label`, `At::Offset`
 - **Stagger** — offset N animations with a single call
-- **Physics springs** — damped harmonic oscillator with 4 presets
+- **Physics springs** — damped harmonic oscillator with 4 presets + `SpringN<T>` for 2D/3D/4D
 - **Looping** — `Loop::Once`, `Times(n)`, `Forever`, `PingPong` on tweens and keyframes
 - **Time scale** — speed up / slow down tweens and timelines at runtime
 - **Callbacks** — `on_start`, `on_update`, `on_complete` on tweens (`std` feature)
@@ -29,7 +29,7 @@ game engines (Bevy), or native desktop apps.
 
 ```toml
 [dependencies]
-spanda = "0.4"
+spanda = "0.6"
 ```
 
 ### Quick Example
@@ -81,6 +81,23 @@ spring.set_target(100.0);
 for _ in 0..300 {
     spring.update(1.0 / 60.0);
 }
+assert!(spring.is_settled());
+```
+
+### Multi-Dimensional Spring (SpringN)
+
+```rust
+use spanda::spring::{SpringN, SpringConfig};
+use spanda::traits::Update;
+
+let mut spring = SpringN::new(SpringConfig::wobbly(), [0.0_f32, 0.0]);
+spring.set_target([100.0, 200.0]);
+
+for _ in 0..1000 {
+    spring.update(1.0 / 60.0);
+}
+
+let pos = spring.position(); // [f32; 2]
 assert!(spring.is_settled());
 ```
 
@@ -228,7 +245,7 @@ timeline.update(0.9);
 
 ```rust,ignore
 use bevy::prelude::*;
-use spanda::integrations::bevy::SpandaPlugin;
+use spanda::integrations::bevy::{SpandaPlugin, TweenCompleted, SpringSettled};
 
 fn main() {
     App::new()
@@ -244,6 +261,9 @@ fn main() {
 use spanda::integrations::wasm::RafDriver;
 
 let mut driver = RafDriver::new();
+driver.pause();       // pause animations
+driver.resume();      // resume
+driver.set_time_scale(2.0); // 2x speed
 // Call driver.tick(timestamp_ms) from your rAF callback.
 ```
 
@@ -270,7 +290,7 @@ src/
 ├── tween.rs         — Tween<T>, TweenBuilder, TweenState
 ├── keyframe.rs      — KeyframeTrack, Keyframe, Loop
 ├── timeline.rs      — Timeline, Sequence, At, stagger
-├── spring.rs        — Spring, SpringConfig
+├── spring.rs        — Spring, SpringConfig, SpringN, SpringAnimatable
 ├── clock.rs         — Clock, WallClock, ManualClock, MockClock
 ├── driver.rs        — AnimationDriver, AnimationId
 ├── scroll.rs        — ScrollClock, ScrollDriver

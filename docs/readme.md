@@ -29,10 +29,12 @@ This architecture makes spanda work **everywhere**:
 | **Easing** | 33 easing curves + CubicBezier + Steps | [easing.md](easing.md) |
 | **Keyframes** | Multi-stop animation with per-segment easing | [keyframe.md](keyframe.md) |
 | **Timeline & Sequence** | Compose animations concurrently or sequentially | [timeline.md](timeline.md) |
-| **Spring** | Physics-based damped harmonic oscillator | [spring.md](spring.md) |
+| **Spring** | Physics-based damped harmonic oscillator + generic SpringN<T> | [spring.md](spring.md) |
 | **Scroll** | Scroll-linked animations with ScrollDriver/ScrollClock | [scroll.md](scroll.md) |
 | **Motion Paths** | Bezier curves, CatmullRom, PolyPath, CompoundPath, SVG parser | [path.md](path.md) |
 | **Driver & Clock** | Manage multiple animations with time abstraction | [integrations.md](integrations.md) |
+| **Leptos** | Reactive signal integration guide | [leptos_guide.md](leptos_guide.md) |
+| **Dioxus** | Coroutine-based animation guide | [dioxus_guide.md](dioxus_guide.md) |
 
 ---
 
@@ -42,7 +44,7 @@ Add `spanda` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-spanda = "0.4"
+spanda = "0.6"
 ```
 
 ### Basic Tween
@@ -303,7 +305,7 @@ src/
 ├── tween.rs         — Tween<T>, TweenBuilder, TweenState
 ├── keyframe.rs      — KeyframeTrack, Keyframe, Loop
 ├── timeline.rs      — Timeline, Sequence, At, stagger
-├── spring.rs        — Spring, SpringConfig (4 presets)
+├── spring.rs        — Spring, SpringConfig, SpringN<T>, SpringAnimatable
 ├── clock.rs         — Clock trait, WallClock, ManualClock, MockClock
 ├── driver.rs        — AnimationDriver, AnimationDriverArc, AnimationId
 ├── scroll.rs        — ScrollClock, ScrollDriver

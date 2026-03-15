@@ -68,7 +68,7 @@ pub use traits::{Animatable, Interpolate, Update};
 pub use tween::{Tween, TweenState, snap_to, round_to};
 pub use keyframe::{KeyframeTrack, Keyframe, Loop};
 pub use timeline::{Timeline, Sequence, At, stagger};
-pub use spring::{Spring, SpringConfig};
+pub use spring::{Spring, SpringConfig, SpringN, SpringAnimatable};
 pub use driver::{AnimationDriver, AnimationId};
 pub use clock::{Clock, ManualClock, MockClock};
 pub use scroll::{ScrollClock, ScrollDriver};

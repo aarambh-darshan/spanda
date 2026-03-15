@@ -93,7 +93,7 @@ spanda/
     ├── tween.rs             ← Tween<T> struct, looping, time scale, callbacks
     ├── keyframe.rs          ← KeyframeTrack<T>
     ├── timeline.rs          ← Timeline, Sequence, At, stagger
-    ├── spring.rs            ← Spring, SpringConfig
+    ├── spring.rs        — Spring, SpringConfig, SpringN<T>, SpringAnimatable
     ├── driver.rs            ← AnimationDriver (manages active animations)
     ├── clock.rs             ← Clock trait, WallClock, MockClock
     ├── driver.rs            ← AnimationDriver (manages active animations)
@@ -634,7 +634,7 @@ pub use traits::{Animatable, Interpolate, Update};
 pub use tween::{Tween, TweenState, snap_to, round_to};
 pub use keyframe::{KeyframeTrack, Keyframe, Loop};
 pub use timeline::{Timeline, Sequence, At, stagger};
-pub use spring::{Spring, SpringConfig};
+pub use spring::{Spring, SpringConfig, SpringN, SpringAnimatable};
 pub use driver::{AnimationDriver, AnimationId};
 pub use clock::{Clock, WallClock, ManualClock, MockClock};
 pub use scroll::{ScrollClock, ScrollDriver};
@@ -1152,8 +1152,8 @@ Before running `cargo publish`:
 | `0.2.0` | Ergonomics — stagger, looping, time scale, callbacks, value modifiers |
 | `0.3.0` | Scroll & motion paths — ScrollDriver, At positioning, Bezier paths, MotionPath |
 | `0.4.0` | Full motion path system — CatmullRom, PolyPath, CompoundPath, SvgPathParser, CSS easing |
-| `0.5.0` | `spring` generics & Bevy polish |
-| `0.6.0` | `wasm` & web polish |
+| `0.5.0` | `spring` generics & Bevy polish — SpringN<T>, SpringSettled event, AnimationLabel |
+| `0.6.0` | `wasm` & web polish — RafDriver enhancements, start_raf_loop, Leptos/Dioxus guides |
 | `1.0.0` | Stable API, full docs, all examples |
 
 ---
@@ -1253,5 +1253,5 @@ can inspect and mutate them directly without getters.
 
 ---
 
-*Document version: 0.4 — covers planned scope through spanda 1.0.0*
+*Document version: 0.6 — covers planned scope through spanda 1.0.0*
 *Project: Aarambh Dev Hub — github.com/aarambh-darshan/spanda*
