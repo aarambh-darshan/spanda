@@ -61,6 +61,7 @@ const ELASTIC_C5: f32 = (2.0 * PI) / 4.5;
 ///
 /// Use [`Easing::apply`] to evaluate any variant at a given `t`.
 #[derive(Clone)]
+#[non_exhaustive]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum Easing {
     // ── Linear ────────────────────────────────────────────────────────────────
@@ -177,6 +178,59 @@ pub enum Easing {
     /// assert!((stepped.apply(1.0) - 1.0).abs() < 1e-6);
     /// ```
     Steps(u32),
+
+    // ── Advanced parameterized easings (v0.8) ──────────────────────────────
+    /// Deterministic rough/jittery easing — noise overlaid on a linear curve.
+    /// `strength` controls deviation amplitude, `points` is noise sample count,
+    /// `seed` ensures reproducibility.
+    RoughEase {
+        /// Deviation amplitude (0..1).
+        strength: f32,
+        /// Number of noise sample points.
+        points: u32,
+        /// PRNG seed for reproducibility.
+        seed: u32,
+    },
+
+    /// Slow-fast-slow piecewise easing for dramatic effects.
+    /// `ratio` (0..1) is the fraction of the curve that is "slow" on each side.
+    /// `power` controls steepness. `yoyo_mode` mirrors the shape.
+    SlowMo {
+        /// Fraction of the curve that is "slow" on each side (0..1).
+        ratio: f32,
+        /// Steepness of the slow sections.
+        power: f32,
+        /// If true, the curve is mirrored.
+        yoyo_mode: bool,
+    },
+
+    /// Perceptual exponential scale correction.
+    /// Corrects non-linearity where `1→2` looks different from `2→4`.
+    ExpoScale {
+        /// Starting scale value.
+        start_scale: f32,
+        /// Ending scale value.
+        end_scale: f32,
+    },
+
+    /// Sinusoidal wiggle — oscillates around the base curve.
+    /// `frequency` is the number of full oscillations, `amplitude` is max deviation.
+    Wiggle {
+        /// Number of full oscillations.
+        frequency: f32,
+        /// Maximum deviation from linear base (0..1).
+        amplitude: f32,
+    },
+
+    /// Parametric bounce with configurable strength and squash.
+    /// `strength` (0..1) controls bounce height decay.
+    /// `squash` (≥0) controls horizontal compression at each bounce.
+    CustomBounce {
+        /// Bounce height decay factor (0..1).
+        strength: f32,
+        /// Horizontal compression per bounce (≥0).
+        squash: f32,
+    },
 }
 
 impl Easing {
@@ -234,6 +288,17 @@ impl Easing {
 
             Self::CubicBezier(x1, y1, x2, y2) => cubic_bezier_ease(t, *x1, *y1, *x2, *y2),
             Self::Steps(n)        => steps_ease(t, *n),
+
+            Self::RoughEase { strength, points, seed } =>
+                rough_ease(t, *strength, *points, *seed),
+            Self::SlowMo { ratio, power, yoyo_mode } =>
+                slow_mo(t, *ratio, *power, *yoyo_mode),
+            Self::ExpoScale { start_scale, end_scale } =>
+                expo_scale(t, *start_scale, *end_scale),
+            Self::Wiggle { frequency, amplitude } =>
+                wiggle_ease(t, *frequency, *amplitude),
+            Self::CustomBounce { strength, squash } =>
+                custom_bounce(t, *strength, *squash),
         }
     }
 }
@@ -247,6 +312,21 @@ impl core::fmt::Debug for Easing {
                 write!(f, "Easing::CubicBezier({x1}, {y1}, {x2}, {y2})")
             }
             Self::Steps(n) => write!(f, "Easing::Steps({n})"),
+            Self::RoughEase { strength, points, seed } => {
+                write!(f, "Easing::RoughEase({strength}, {points}, {seed})")
+            }
+            Self::SlowMo { ratio, power, yoyo_mode } => {
+                write!(f, "Easing::SlowMo({ratio}, {power}, {yoyo_mode})")
+            }
+            Self::ExpoScale { start_scale, end_scale } => {
+                write!(f, "Easing::ExpoScale({start_scale}, {end_scale})")
+            }
+            Self::Wiggle { frequency, amplitude } => {
+                write!(f, "Easing::Wiggle({frequency}, {amplitude})")
+            }
+            Self::CustomBounce { strength, squash } => {
+                write!(f, "Easing::CustomBounce({strength}, {squash})")
+            }
             _ => write!(f, "Easing::{}", self.name()),
         }
     }
@@ -260,6 +340,21 @@ impl PartialEq for Easing {
                 x1 == a1 && y1 == b1 && x2 == a2 && y2 == b2
             }
             (Self::Steps(a), Self::Steps(b)) => a == b,
+            (Self::RoughEase { strength: s1, points: p1, seed: d1 },
+             Self::RoughEase { strength: s2, points: p2, seed: d2 }) =>
+                s1 == s2 && p1 == p2 && d1 == d2,
+            (Self::SlowMo { ratio: r1, power: p1, yoyo_mode: y1 },
+             Self::SlowMo { ratio: r2, power: p2, yoyo_mode: y2 }) =>
+                r1 == r2 && p1 == p2 && y1 == y2,
+            (Self::ExpoScale { start_scale: s1, end_scale: e1 },
+             Self::ExpoScale { start_scale: s2, end_scale: e2 }) =>
+                s1 == s2 && e1 == e2,
+            (Self::Wiggle { frequency: f1, amplitude: a1 },
+             Self::Wiggle { frequency: f2, amplitude: a2 }) =>
+                f1 == f2 && a1 == a2,
+            (Self::CustomBounce { strength: s1, squash: q1 },
+             Self::CustomBounce { strength: s2, squash: q2 }) =>
+                s1 == s2 && q1 == q2,
             _ => self.name() == other.name(),
         }
     }
@@ -303,6 +398,11 @@ impl Easing {
             Self::Custom(_)        => "Custom",
             Self::CubicBezier(..) => "CubicBezier",
             Self::Steps(_)        => "Steps",
+            Self::RoughEase { .. } => "RoughEase",
+            Self::SlowMo { .. }    => "SlowMo",
+            Self::ExpoScale { .. } => "ExpoScale",
+            Self::Wiggle { .. }    => "Wiggle",
+            Self::CustomBounce { .. } => "CustomBounce",
         }
     }
 
@@ -588,6 +688,144 @@ pub fn steps_ease(t: f32, n: u32) -> f32 {
     step / n_f
 }
 
+// ── Advanced parameterized easings (v0.8) ──────────────────────────────────
+
+/// Deterministic rough/jittery easing — noise overlaid on a linear curve.
+///
+/// Uses a hash-based PRNG to generate `points` noise samples, then linearly
+/// interpolates between them. `strength` controls deviation amplitude (0..1),
+/// `seed` ensures reproducibility.
+#[inline]
+pub fn rough_ease(t: f32, strength: f32, points: u32, seed: u32) -> f32 {
+    if points == 0 || strength == 0.0 {
+        return t;
+    }
+    // Determine which segment t falls in
+    let n = points as f32;
+    let scaled = t * n;
+    let idx = (scaled as u32).min(points - 1);
+    let frac = scaled - idx as f32;
+
+    // Deterministic hash for noise at each sample point
+    let noise_at = |i: u32| -> f32 {
+        let h = i.wrapping_mul(2654435761).wrapping_add(seed.wrapping_mul(2246822519));
+        let h = h ^ (h >> 16);
+        let h = h.wrapping_mul(0x45d9f3b);
+        let h = h ^ (h >> 16);
+        // Map to [-1, 1]
+        (h as f32 / u32::MAX as f32) * 2.0 - 1.0
+    };
+
+    let n0 = noise_at(idx);
+    let n1 = if idx + 1 < points { noise_at(idx + 1) } else { 0.0 };
+    let noise = n0 + (n1 - n0) * frac;
+
+    (t + noise * strength).clamp(0.0, 1.0)
+}
+
+/// Slow-fast-slow piecewise easing for dramatic effects.
+///
+/// `ratio` (0..1) controls how much of the curve is "slow" — higher values
+/// mean more slow time at edges. `power` controls steepness of the slow
+/// sections. If `yoyo_mode` is true, the curve is mirrored.
+#[inline]
+pub fn slow_mo(t: f32, ratio: f32, power: f32, yoyo_mode: bool) -> f32 {
+    let t = if yoyo_mode && t > 0.5 { 1.0 - t } else { t };
+    let ratio = ratio.clamp(0.0, 1.0);
+    let half_ratio = ratio * 0.5;
+    let slow_end = 1.0 - half_ratio;
+
+    if t < half_ratio {
+        // Slow start section — power curve from 0 to transition point
+        let local = t / half_ratio;
+        let transition_y = half_ratio; // linear value at boundary
+        transition_y * local.powf(1.0 / power.max(0.01))
+    } else if t > slow_end {
+        // Slow end section — power curve approaching 1
+        let local = (t - slow_end) / half_ratio;
+        let transition_y = slow_end;
+        transition_y + (1.0 - transition_y) * local.powf(power.max(0.01))
+    } else {
+        // Fast middle — linear
+        t
+    }
+}
+
+/// Perceptual exponential scale correction.
+///
+/// Maps linear progress to exponentially-scaled output, correcting the
+/// perception that `1→2` looks different from `2→4`. Returns a value
+/// normalised to `[0, 1]`.
+#[inline]
+pub fn expo_scale(t: f32, start_scale: f32, end_scale: f32) -> f32 {
+    let start = start_scale.max(0.001); // avoid log(0)
+    let end = end_scale.max(0.001);
+    if (start - end).abs() < 1e-10 {
+        return t;
+    }
+    let ratio = end / start;
+    (start * ratio.powf(t) - start) / (end - start)
+}
+
+/// Sinusoidal wiggle easing — oscillates around the base linear curve.
+///
+/// `frequency` is the number of full oscillations across the animation.
+/// `amplitude` (0..1) controls the maximum deviation from the linear base.
+/// Output is clamped to `[0, 1]`.
+#[inline]
+pub fn wiggle_ease(t: f32, frequency: f32, amplitude: f32) -> f32 {
+    (t + amplitude * (frequency * 2.0 * PI * t).sin()).clamp(0.0, 1.0)
+}
+
+/// Parametric bounce with configurable strength and squash.
+///
+/// `strength` (0..1) controls how quickly bounces decay — lower means more
+/// bounces with less height each. `squash` (≥0) compresses each bounce
+/// horizontally, making them sharper.
+#[inline]
+pub fn custom_bounce(t: f32, strength: f32, squash: f32) -> f32 {
+    if t == 0.0 {
+        return 0.0;
+    }
+    if t >= 1.0 {
+        return 1.0;
+    }
+    let strength = strength.clamp(0.01, 1.0);
+
+    // Number of bounces derived from strength: fewer bounces = stronger
+    let bounces = (1.0 / strength).ceil() as u32;
+    let bounces = bounces.max(2);
+
+    // Find which bounce segment we're in
+    let mut seg_start = 0.0_f32;
+    let mut seg_width = 1.0_f32;
+    let decay = strength;
+
+    for _ in 0..bounces {
+        let seg_end = seg_start + seg_width;
+        if t < seg_end || seg_width < 0.001 {
+            // We're in this segment — parabolic bounce
+            let local = (t - seg_start) / seg_width;
+            // Apply squash: compress the parabola horizontally
+            let squashed = if squash > 0.0 {
+                let mid = 0.5;
+                let offset = local - mid;
+                (mid + offset * (1.0 + squash)).clamp(0.0, 1.0)
+            } else {
+                local
+            };
+            // Parabolic arc: 4 * x * (1 - x), peaks at 1.0 for first bounce
+            let height = if seg_start == 0.0 { 1.0 } else { seg_width * 4.0 };
+            let arc = 4.0 * squashed * (1.0 - squashed);
+            return (1.0 - height.min(1.0) * (1.0 - arc)).clamp(0.0, 1.0);
+        }
+        seg_start += seg_width;
+        seg_width *= decay;
+    }
+
+    1.0
+}
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -726,5 +964,69 @@ mod tests {
     fn steps_zero_returns_zero() {
         let s = Easing::Steps(0);
         assert!((s.apply(0.5) - 0.0).abs() < 1e-6);
+    }
+
+    // ── Advanced parameterized easing tests (v0.8) ──────────────────────────
+
+    #[test]
+    fn rough_ease_endpoints() {
+        let e = Easing::RoughEase { strength: 0.5, points: 20, seed: 42 };
+        assert!((e.apply(0.0)).abs() < 1e-5, "RoughEase(0) should be ~0");
+        assert!((e.apply(1.0) - 1.0).abs() < 1e-5, "RoughEase(1) should be ~1");
+    }
+
+    #[test]
+    fn rough_ease_zero_strength_is_linear() {
+        let e = Easing::RoughEase { strength: 0.0, points: 20, seed: 42 };
+        for i in 0..=10 {
+            let t = i as f32 / 10.0;
+            assert!((e.apply(t) - t).abs() < 1e-6);
+        }
+    }
+
+    #[test]
+    fn slow_mo_endpoints() {
+        let e = Easing::SlowMo { ratio: 0.7, power: 0.7, yoyo_mode: false };
+        assert!((e.apply(0.0)).abs() < 1e-5);
+        assert!((e.apply(1.0) - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn expo_scale_endpoints() {
+        let e = Easing::ExpoScale { start_scale: 1.0, end_scale: 10.0 };
+        assert!((e.apply(0.0)).abs() < 1e-5);
+        assert!((e.apply(1.0) - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn expo_scale_equal_scales_is_linear() {
+        let e = Easing::ExpoScale { start_scale: 5.0, end_scale: 5.0 };
+        for i in 0..=10 {
+            let t = i as f32 / 10.0;
+            assert!((e.apply(t) - t).abs() < 1e-5);
+        }
+    }
+
+    #[test]
+    fn wiggle_zero_amplitude_is_linear() {
+        let e = Easing::Wiggle { frequency: 5.0, amplitude: 0.0 };
+        for i in 0..=10 {
+            let t = i as f32 / 10.0;
+            assert!((e.apply(t) - t).abs() < 1e-6);
+        }
+    }
+
+    #[test]
+    fn wiggle_endpoints() {
+        let e = Easing::Wiggle { frequency: 3.0, amplitude: 0.3 };
+        assert!((e.apply(0.0)).abs() < 1e-5);
+        assert!((e.apply(1.0) - 1.0).abs() < 1e-2);
+    }
+
+    #[test]
+    fn custom_bounce_endpoints() {
+        let e = Easing::CustomBounce { strength: 0.5, squash: 0.0 };
+        assert!((e.apply(0.0)).abs() < 1e-5);
+        assert!((e.apply(1.0) - 1.0).abs() < 1e-5);
     }
 }

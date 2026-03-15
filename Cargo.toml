@@ -1,9 +1,9 @@
 [package]
 name        = "spanda"
-version     = "0.7.0"
+version     = "0.8.0"
 edition     = "2021"
 description = "A general-purpose animation library for Rust — tweening, keyframes, timelines, and physics."
-license     = "MIT"
+license     = "MIT OR Apache-2.0"
 repository  = "https://github.com/aarambh-darshan/spanda"
 keywords    = ["animation", "tween", "easing", "keyframe", "gamedev"]
 categories  = ["game-development", "graphics", "mathematics", "multimedia"]
@@ -17,6 +17,7 @@ std      = []                         # enables std clock, thread-safe driver
 serde    = ["dep:serde"]              # Serialize/Deserialize on all public types
 bevy     = ["dep:bevy_app", "dep:bevy_ecs", "dep:bevy_time", "std"]
 wasm     = ["dep:wasm-bindgen", "dep:js-sys", "std"]
+wasm-dom = ["wasm", "dep:web-sys"]          # WASM + DOM plugins (Flip, SplitText, etc.)
 palette  = ["dep:palette"]            # Color interpolation via palette crate
 tokio    = ["dep:tokio", "std"]       # async .await on timeline completion
 
@@ -29,6 +30,12 @@ bevy_ecs     = { version = "0.13", optional = true }
 bevy_time    = { version = "0.13", optional = true }
 wasm-bindgen = { version = "0.2",  optional = true }
 js-sys       = { version = "0.3",  optional = true }
+web-sys      = { version = "0.3",  optional = true, features = [
+    "Window", "Document", "Element", "HtmlElement", "DomRect",
+    "CssStyleDeclaration", "Node", "NodeList", "Text",
+    "EventTarget", "Event", "PointerEvent", "MouseEvent",
+    "TouchEvent", "Touch", "TouchList", "WheelEvent",
+] }
 palette      = { version = "0.7",  optional = true }
 tokio        = { version = "1",    features = ["sync"], optional = true }
 

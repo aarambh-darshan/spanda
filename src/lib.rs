@@ -59,6 +59,10 @@ pub mod path;
 pub mod bezier;
 pub mod motion_path;
 pub mod svg_path;
+pub mod svg_draw;
+pub mod morph;
+pub mod inertia;
+pub mod drag;
 pub mod integrations;
 
 #[cfg(feature = "palette")]
@@ -79,6 +83,10 @@ pub use path::{BezierPath, MotionPath, MotionPathTween, PathEvaluate};
 pub use bezier::{CatmullRomSpline, PathEvaluate2D, tangent_angle, tangent_angle_deg};
 pub use motion_path::{PolyPath, CompoundPath, PathCommand};
 pub use svg_path::SvgPathParser;
+pub use svg_draw::{draw_on, draw_on_reverse};
+pub use morph::{MorphPath, resample};
+pub use inertia::{Inertia, InertiaN, InertiaConfig};
+pub use drag::{DragState, DragConstraints, DragAxis, PointerData};
 
 #[cfg(feature = "std")]
 pub use clock::WallClock;

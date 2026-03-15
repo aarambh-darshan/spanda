@@ -8,7 +8,7 @@ Integrate spanda animations into [Dioxus](https://dioxuslabs.com) components usi
 
 ```toml
 [dependencies]
-spanda = { version = "0.6", features = ["wasm"] }
+spanda = { version = "0.8", features = ["wasm"] }
 dioxus = "0.5"
 ```
 

@@ -134,7 +134,7 @@ If you use [Bevy](https://bevyengine.org), activate the `bevy` feature:
 
 ```toml
 [dependencies]
-spanda = { version = "0.6", features = ["bevy"] }
+spanda = { version = "0.8", features = ["bevy"] }
 ```
 
 This adds `SpandaPlugin`, which automatically:
@@ -197,7 +197,7 @@ Activate the `wasm` feature:
 
 ```toml
 [dependencies]
-spanda = { version = "0.6", features = ["wasm"] }
+spanda = { version = "0.8", features = ["wasm"] }
 ```
 
 Use `RafDriver` — pass it the high-resolution timestamp from JavaScript.  New in 0.6: pause/resume, time scale, visibility change handling, and `start_raf_loop`:
@@ -369,6 +369,148 @@ fn AnimatedBox() -> Element {
     }
 }
 ```
+
+---
+
+## WASM-DOM Plugins
+
+For web apps that need direct DOM interaction, the `wasm-dom` feature adds five high-level plugins built on spanda's pure-math primitives.
+
+```toml
+[dependencies]
+spanda = { version = "0.8", features = ["wasm-dom"] }
+```
+
+> `wasm-dom` implies `wasm`, so you don't need to specify both.
+
+### Observer
+
+Unified pointer/touch/mouse event normaliser. Binds to any DOM element and delivers all input as `PointerData`:
+
+```rust
+use spanda::integrations::observer::{Observer, ObserverCallbacks};
+use spanda::drag::PointerData;
+
+let callbacks = ObserverCallbacks {
+    on_press: Some(Box::new(|data: PointerData| {
+        log::info!("Press at ({}, {})", data.x, data.y);
+    })),
+    on_move: Some(Box::new(|data: PointerData| {
+        // track position
+    })),
+    on_release: Some(Box::new(|data: PointerData| {
+        // handle release
+    })),
+    on_wheel: Some(Box::new(|delta_y: f64| {
+        // handle scroll wheel
+    })),
+};
+
+let observer = Observer::bind(&element, callbacks);
+// observer.unbind() to remove all listeners
+```
+
+### FLIP Animations
+
+The [FLIP technique](https://aerotwist.com/blog/flip-your-animations/) (First, Last, Invert, Play) for layout-driven animations:
+
+```rust
+use spanda::integrations::flip::{FlipState, FlipAnimation};
+use spanda::traits::Update;
+
+// 1. Capture the FIRST state
+let first = FlipState::capture(&element);
+
+// 2. Make your layout change (add class, move element, etc.)
+element.class_list().add_1("expanded").unwrap();
+
+// 3. Capture the LAST state
+let last = FlipState::capture(&element);
+
+// 4. Create and play the animation
+let mut anim: FlipAnimation = FlipState::diff(&first, &last)
+    .duration(0.3)
+    .build();
+
+// 5. Each frame, update and apply
+anim.update(dt);
+let css = anim.css_transform(); // "translate(Xpx, Ypx) scale(Sx, Sy)"
+```
+
+For pure-math use (no DOM), use `FlipState::from_rect(x, y, w, h)` to create states manually.
+
+### SplitText
+
+Split text into individual characters or words for staggered animation. The core splitting is always available (no feature gate needed); DOM injection requires `wasm-dom`:
+
+```rust
+use spanda::integrations::split_text::SplitText;
+use spanda::easing::Easing;
+
+// Pure string splitting — works everywhere
+let split = SplitText::from_str("Hello World");
+assert_eq!(split.char_count(), 11);
+assert_eq!(split.word_count(), 2);
+
+// Create a staggered fade-in timeline for each character
+let timeline = split.stagger_chars(
+    0.0_f32,             // from value
+    1.0_f32,             // to value
+    0.3,                 // per-character duration
+    0.05,                // stagger delay between characters
+    Easing::EaseOutCubic,
+);
+
+// DOM injection (wasm-dom only):
+// split.inject_chars(&parent_element);  // wraps each char in <span>
+// split.inject_words(&parent_element);  // wraps each word in <span>
+```
+
+### ScrollSmoother
+
+Spring-driven smooth scroll overlay. Intercepts native scrolling and smooths it through a `Spring`:
+
+```rust
+use spanda::integrations::scroll_smoother::ScrollSmoother;
+use spanda::spring::SpringConfig;
+
+let mut smoother = ScrollSmoother::new(
+    content_element,           // the scrollable content HtmlElement
+    SpringConfig::gentle(),    // spring config for smoothing
+);
+
+smoother.attach(); // sets overflow: hidden, listens to scroll events
+
+// Each frame:
+smoother.tick(dt);
+let smooth_pos = smoother.position(); // spring-smoothed scroll position
+// smoother.detach() to restore native scrolling
+```
+
+### Draggable
+
+DOM-bound pointer event wrapper over `DragState`. Handles all the event binding so you just read position:
+
+```rust
+use spanda::integrations::draggable::Draggable;
+use spanda::drag::DragConstraints;
+
+// Simple — drag anywhere
+let draggable = Draggable::bind(&element);
+
+// With constraints
+let draggable = Draggable::bind_with_constraints(&element, DragConstraints {
+    bounds: Some([0.0, 0.0, 500.0, 500.0]),
+    snap_to_grid: Some([20.0, 20.0]),
+    ..Default::default()
+});
+
+// Read state
+let pos = draggable.position();     // [f32; 2]
+let active = draggable.is_dragging();
+
+// Cleanup
+draggable.unbind();
 ```
 
 ---
@@ -456,7 +598,7 @@ Spanda works in `no_std` environments — disable the default `std` feature:
 
 ```toml
 [dependencies]
-spanda = { version = "0.1", default-features = false }
+spanda = { version = "0.8", default-features = false }
 ```
 
 In `no_std` mode:
@@ -505,4 +647,4 @@ fn animate_led_brightness() {
 | State persistence | `serde` | Serialize/deserialize all animation types |
 | Colour animations | `palette` | `Interpolate` impl for `palette` colour types |
 | Async workflows | `tokio` | `.await` on timeline completion |
-| Full everything | `std,serde,bevy,wasm,palette,tokio` | All features enabled |
+| Full everything | `std,serde,bevy,wasm,wasm-dom,palette,tokio` | All features enabled |

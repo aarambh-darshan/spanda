@@ -203,6 +203,7 @@ let tween = Tween::new(0.0_f32, 100.0)
 | `0.5.0` | March 2026 | SpringN<T> generic springs, SpringSettled event, AnimationLabel, bevy_bounce example |
 | `0.6.0` | March 2026 | WASM RafDriver enhancements (pause/resume/visibility), start_raf_loop, Leptos & Dioxus guides |
 | `0.7.0` | March 2026 | Colour interpolation — 9 palette types, InLab/InOklch/InLinear wrappers, SpringAnimatable, colour_demo |
+| `0.8.0` | March 2026 | GSAP-class features — DrawSVG, MorphPath, Inertia, 5 advanced easings, DragState, WASM-DOM plugins (FLIP, SplitText, ScrollSmoother, Draggable, Observer) |
 
 ---
 

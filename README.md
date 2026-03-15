@@ -8,7 +8,7 @@ game engines (Bevy), or native desktop apps.
 
 ## Features
 
-- **Tweening** — animate any value from A to B with 31 built-in easing curves
+- **Tweening** — animate any value from A to B with 38+ easing curves
 - **Keyframe tracks** — multi-stop animations with per-segment easing
 - **Timeline & Sequence** — compose animations concurrently or sequentially
 - **Relative positioning** — GSAP-style `At::Start`, `At::End`, `At::Label`, `At::Offset`
@@ -23,6 +23,12 @@ game engines (Bevy), or native desktop apps.
 - **Full motion path system** — `PolyPath`, `CompoundPath`, `SvgPathParser`, auto-rotate, start/end offsets
 - **CSS easing** — `CubicBezier(x1,y1,x2,y2)` and `Steps(n)` on the `Easing` enum
 - **Colour animation** — 9 palette types + `InLab`/`InOklch`/`InLinear` colour-space-aware wrappers (`palette` feature)
+- **DrawSVG** — `draw_on` / `draw_on_reverse` stroke-dashoffset helpers
+- **Shape morphing** — `MorphPath` point-by-point morph with auto-resampling
+- **Inertia physics** — `Inertia` / `InertiaN<T>` friction deceleration with presets
+- **Advanced easings** — `RoughEase`, `SlowMo`, `ExpoScale`, `Wiggle`, `CustomBounce`
+- **Drag tracking** — `DragState` with velocity EMA, bounds, axis lock, grid snap → `InertiaN` on release
+- **WASM-DOM plugins** — FLIP animations, SplitText, ScrollSmoother, Draggable, Observer (`wasm-dom` feature)
 - **Animation driver** — manage multiple animations with auto-cleanup
 - **Clock abstraction** — wall clock, manual clock, scroll clock, and mock clock for testing
 
@@ -30,7 +36,7 @@ game engines (Bevy), or native desktop apps.
 
 ```toml
 [dependencies]
-spanda = "0.7"
+spanda = "0.8"
 ```
 
 ### Quick Example
@@ -260,6 +266,7 @@ timeline.update(0.9);
 | `serde`    | `Serialize`/`Deserialize` on all public types         |
 | `bevy`     | `SpandaPlugin` for Bevy 0.13                          |
 | `wasm`     | `requestAnimationFrame` driver                        |
+| `wasm-dom` | DOM plugins: FLIP, SplitText, ScrollSmoother, Draggable, Observer |
 | `palette`  | Colour interpolation via the `palette` crate          |
 | `tokio`    | `async` / `.await` on timeline completion             |
 
@@ -308,7 +315,7 @@ cargo test --tests        # integration tests only
 src/
 ├── lib.rs           — crate root, re-exports
 ├── traits.rs        — Interpolate, Animatable, Update
-├── easing.rs        — 33 easing functions + CubicBezier + Steps
+├── easing.rs        — 38 easing functions + CubicBezier + Steps + 5 advanced
 ├── tween.rs         — Tween<T>, TweenBuilder, TweenState
 ├── keyframe.rs      — KeyframeTrack, Keyframe, Loop
 ├── timeline.rs      — Timeline, Sequence, At, stagger
@@ -321,12 +328,26 @@ src/
 ├── motion_path.rs   — PolyPath, CompoundPath, PathCommand
 ├── svg_path.rs      — SvgPathParser (SVG d-attribute parser)
 ├── colour.rs        — colour interpolation (feature = "palette")
+├── svg_draw.rs      — DrawSVG stroke-dashoffset helpers
+├── morph.rs         — MorphPath shape morphing + resample
+├── inertia.rs       — Inertia, InertiaN friction deceleration
+├── drag.rs          — DragState, DragConstraints, PointerData
 └── integrations/
     ├── mod.rs
     ├── bevy.rs      — SpandaPlugin  (feature = "bevy")
-    └── wasm.rs      — RafDriver     (feature = "wasm")
+    ├── wasm.rs      — RafDriver     (feature = "wasm")
+    ├── split_text.rs — SplitText character/word splitting
+    ├── flip.rs      — FlipState, FlipAnimation (feature = "wasm-dom")
+    ├── scroll_smoother.rs — ScrollSmoother (feature = "wasm-dom")
+    ├── draggable.rs — Draggable DOM binding (feature = "wasm-dom")
+    └── observer.rs  — Observer unified input (feature = "wasm-dom")
 ```
 
 ## License
 
-Licensed under the [MIT License](LICENSE).
+Licensed under either of
+
+- [Apache License, Version 2.0](LICENSE-APACHE)
+- [MIT License](LICENSE-MIT)
+
+at your option.

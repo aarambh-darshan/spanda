@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] — 2026-03-15
+
+### Added
+
+- **Advanced easing variants** (5 new parameterized easings):
+  - `RoughEase { strength, points, seed }` — deterministic noise overlay
+  - `SlowMo { ratio, power, yoyo_mode }` — slow-fast-slow piecewise curve
+  - `ExpoScale { start_scale, end_scale }` — perceptual scale correction
+  - `Wiggle { frequency, amplitude }` — sinusoidal oscillation
+  - `CustomBounce { strength, squash }` — parametric bounce
+- **DrawSVG helper** (`svg_draw` module):
+  - `draw_on(path_length)` — tween for stroke-dashoffset draw-on effect
+  - `draw_on_reverse(path_length)` — reverse draw-off effect
+- **MorphPath** (`morph` module):
+  - `MorphPath::new(from, to).duration(d).easing(e).build()` — shape morphing
+  - `resample(points, target_count)` — arc-length polyline resampling
+  - Auto-resamples mismatched point counts
+- **Inertia physics** (`inertia` module):
+  - `Inertia` — single-axis friction deceleration (no target, just coasts to stop)
+  - `InertiaN<T>` — multi-dimensional inertia via `SpringAnimatable`
+  - `InertiaConfig` with presets: `default_flick()`, `heavy()`, `snappy()`
+  - Frame-rate independent exponential decay
+- **DragState** (`drag` module):
+  - `DragState` — pure-math pointer drag tracker with velocity EMA
+  - `DragConstraints` — bounds, axis lock, grid snapping
+  - `PointerData` — unified pointer/mouse/touch data struct
+  - `on_pointer_up()` returns `InertiaN<[f32;2]>` for momentum throw
+- **WASM-DOM plugins** (`wasm-dom` feature):
+  - `Observer` — unified pointer/touch/mouse event normaliser
+  - `FlipState` / `FlipAnimation` — FLIP animation technique
+  - `SplitText` — character/word splitting + staggered timelines + DOM injection
+  - `ScrollSmoother` — spring-driven smooth scroll interception
+  - `Draggable` — DOM-bound drag with pointer event listeners
+- New feature flag: `wasm-dom` (enables `wasm` + `web-sys` DOM plugins)
+- `#[non_exhaustive]` on `Easing` enum (future-proofing)
+- New examples: `morph_demo`, `inertia_demo`
+- New integration test: `tests/v080_pure.rs` (10 tests)
+
 ## [0.7.0] — 2026-03-15
 
 ### Added

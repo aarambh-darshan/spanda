@@ -26,16 +26,23 @@ This architecture makes spanda work **everywhere**:
 | Module | Description | Guide |
 |--------|-------------|-------|
 | **Tween** | Animate a single value from A to B with easing, looping, callbacks | [tween.md](tween.md) |
-| **Easing** | 33 easing curves + CubicBezier + Steps | [easing.md](easing.md) |
+| **Easing** | 38+ easing curves (31 standard + CSS + 5 advanced) | [easing.md](easing.md) |
 | **Keyframes** | Multi-stop animation with per-segment easing | [keyframe.md](keyframe.md) |
 | **Timeline & Sequence** | Compose animations concurrently or sequentially | [timeline.md](timeline.md) |
 | **Spring** | Physics-based damped harmonic oscillator + generic SpringN<T> | [spring.md](spring.md) |
 | **Scroll** | Scroll-linked animations with ScrollDriver/ScrollClock | [scroll.md](scroll.md) |
 | **Motion Paths** | Bezier curves, CatmullRom, PolyPath, CompoundPath, SVG parser | [path.md](path.md) |
 | **Colour** | 9 palette types, InLab/InOklch/InLinear colour-space wrappers | [colour.md](colour.md) |
+| **DrawSVG** | Stroke-dashoffset draw-on/draw-off helpers | [v080.md](v080.md) |
+| **Morph** | MorphPath point-by-point shape morphing + resample | [v080.md](v080.md) |
+| **Inertia** | Friction deceleration (Inertia, InertiaN) with presets | [v080.md](v080.md) |
+| **Drag** | Pure-math drag tracking with velocity, constraints, grid snap | [v080.md](v080.md) |
+| **Advanced Easings** | RoughEase, SlowMo, ExpoScale, Wiggle, CustomBounce | [easing.md](easing.md) |
+| **WASM-DOM Plugins** | FLIP, SplitText, ScrollSmoother, Draggable, Observer | [v080.md](v080.md) |
 | **Driver & Clock** | Manage multiple animations with time abstraction | [integrations.md](integrations.md) |
 | **Leptos** | Reactive signal integration guide | [leptos_guide.md](leptos_guide.md) |
 | **Dioxus** | Coroutine-based animation guide | [dioxus_guide.md](dioxus_guide.md) |
+| **Feature Matrix** | Which flags enable which modules | [feature_matrix.md](feature_matrix.md) |
 
 ---
 
@@ -45,7 +52,7 @@ Add `spanda` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-spanda = "0.7"
+spanda = "0.8"
 ```
 
 ### Basic Tween
@@ -225,6 +232,7 @@ assert_eq!(driver.active_count(), 0); // completed animations are auto-removed
 | `serde` | `Serialize`/`Deserialize` on all public types | State persistence, network sync |
 | `bevy` | `SpandaPlugin` for Bevy 0.13 — auto-ticks Tween/Spring components | Game development |
 | `wasm` | `RafDriver` for browser `requestAnimationFrame` | Web apps (Leptos/Dioxus/Yew) |
+| `wasm-dom` | DOM plugins: FLIP, SplitText, ScrollSmoother, Draggable, Observer | Web apps with DOM interaction |
 | `palette` | Colour interpolation via the `palette` crate | Smooth colour animations |
 | `tokio` | `async`/`.await` on timeline completion | Async workflows |
 
@@ -235,9 +243,10 @@ assert_eq!(driver.active_count(), 0); // completed animations are auto-removed
 | A TUI app | `default` (just `std`) |
 | A Bevy game | `bevy` |
 | A WASM web app | `wasm` |
+| A WASM app with DOM plugins | `wasm-dom` |
 | A CLI tool | `default` |
 | Embedded / `no_std` | `default-features = false` |
-| Full everything | `std,serde,bevy,wasm,palette,tokio` |
+| Full everything | `std,serde,bevy,wasm,wasm-dom,palette,tokio` |
 
 ---
 
@@ -259,14 +268,20 @@ assert_eq!(driver.active_count(), 0); // completed animations are auto-removed
         ▼              ▼              ▼              ▼
    ┌─────────┐   ┌──────────┐  ┌──────────┐  ┌────────────┐
    │ Tween<T>│   │ Keyframe │  │  Spring  │  │MotionPath  │
-   │         │   │ Track<T> │  │          │  │  Tween     │
+   │         │   │ Track<T> │  │ Inertia  │  │  Tween     │
    └─────────┘   └──────────┘  └──────────┘  └────────────┘
         │              │              │              │
         ▼              ▼              ▼              ▼
-   ┌─────────────────────────────────────────────────┐
-   │         Interpolate / Animatable                │
-   │   (f32, f64, [f32;2..4], i32, palette colours) │
-   └─────────────────────────────────────────────────┘
+   ┌──────────────────────────────────────────────────────┐
+   │          Interpolate / Animatable                    │
+   │   (f32, f64, [f32;2..4], i32, palette colours)      │
+   └──────────────────────────────────────────────────────┘
+        │                                          │
+        ▼                                          ▼
+   ┌─────────────┐                         ┌──────────────┐
+   │  MorphPath  │                         │  DragState   │
+   │  DrawSVG    │                         │  → InertiaN  │
+   └─────────────┘                         └──────────────┘
 ```
 
 ### Data Flow
@@ -323,7 +338,7 @@ impl Interpolate for Color {
 src/
 ├── lib.rs           — crate root, re-exports
 ├── traits.rs        — Interpolate, Animatable, Update
-├── easing.rs        — 33 easing functions + CubicBezier + Steps
+├── easing.rs        — 38 easing functions + CubicBezier + Steps + 5 advanced
 ├── tween.rs         — Tween<T>, TweenBuilder, TweenState
 ├── keyframe.rs      — KeyframeTrack, Keyframe, Loop
 ├── timeline.rs      — Timeline, Sequence, At, stagger
@@ -336,10 +351,19 @@ src/
 ├── motion_path.rs   — PolyPath, CompoundPath, PathCommand
 ├── svg_path.rs      — SvgPathParser (SVG d-attribute parser)
 ├── colour.rs        — colour interpolation (feature = "palette")
+├── svg_draw.rs      — DrawSVG stroke-dashoffset helpers
+├── morph.rs         — MorphPath shape morphing + resample
+├── inertia.rs       — Inertia, InertiaN friction deceleration
+├── drag.rs          — DragState, DragConstraints, PointerData
 └── integrations/
     ├── mod.rs
     ├── bevy.rs      — SpandaPlugin  (feature = "bevy")
-    └── wasm.rs      — RafDriver     (feature = "wasm")
+    ├── wasm.rs      — RafDriver     (feature = "wasm")
+    ├── split_text.rs — SplitText character/word splitting
+    ├── flip.rs      — FlipState, FlipAnimation (feature = "wasm-dom")
+    ├── scroll_smoother.rs — ScrollSmoother (feature = "wasm-dom")
+    ├── draggable.rs — Draggable DOM binding (feature = "wasm-dom")
+    └── observer.rs  — Observer unified input (feature = "wasm-dom")
 ```
 
 ---
@@ -369,4 +393,9 @@ Contributions are welcome! Please:
 
 ## License
 
-Licensed under the [MIT License](../LICENSE).
+Licensed under either of
+
+- [Apache License, Version 2.0](../LICENSE-APACHE)
+- [MIT License](../LICENSE-MIT)
+
+at your option.

@@ -96,17 +96,25 @@ spanda/
     ├── spring.rs        — Spring, SpringConfig, SpringN<T>, SpringAnimatable
     ├── driver.rs            ← AnimationDriver (manages active animations)
     ├── clock.rs             ← Clock trait, WallClock, MockClock
-    ├── driver.rs            ← AnimationDriver (manages active animations)
     ├── scroll.rs            ← ScrollClock, ScrollDriver (scroll-linked animation)
     ├── path.rs              ← BezierPath, MotionPath, MotionPathTween
     ├── bezier.rs            ← CatmullRomSpline, PathEvaluate2D (tangent, auto-rotate)
     ├── motion_path.rs       ← PolyPath, CompoundPath, PathCommand (arc-length param)
     ├── svg_path.rs          ← SvgPathParser (SVG d-attribute parser)
     ├── colour.rs            ← colour interpolation (feature = "palette")
+    ├── svg_draw.rs          ← DrawSVG stroke-dashoffset helpers
+    ├── morph.rs             ← MorphPath shape morphing + resample
+    ├── inertia.rs           ← Inertia, InertiaN friction deceleration
+    ├── drag.rs              ← DragState, DragConstraints, PointerData
     └── integrations/
         ├── mod.rs
         ├── bevy.rs          ← SpandaPlugin (feature = "bevy")
-        └── wasm.rs          ← RafDriver (feature = "wasm")
+        ├── wasm.rs          ← RafDriver (feature = "wasm")
+        ├── split_text.rs    ← SplitText character/word splitting
+        ├── flip.rs          ← FlipState, FlipAnimation (feature = "wasm-dom")
+        ├── scroll_smoother.rs ← ScrollSmoother (feature = "wasm-dom")
+        ├── draggable.rs     ← Draggable DOM binding (feature = "wasm-dom")
+        └── observer.rs      ← Observer unified input (feature = "wasm-dom")
 ```
 
 ---
@@ -164,7 +172,7 @@ pub trait Update {
 
 **Status: complete** (already written)
 
-31 easing functions exposed both as:
+36 easing functions (31 classic + CubicBezier + Steps + 5 advanced parameterized) exposed both as:
 - `Easing` enum with `.apply(t: f32) -> f32` — pass-around, storable, optionally serialisable
 - Free `pub fn ease_out_cubic(t: f32) -> f32` — zero-overhead direct calls
 
@@ -642,7 +650,10 @@ pub use scroll::{ScrollClock, ScrollDriver};
 pub use path::{BezierPath, MotionPath, MotionPathTween, PathEvaluate};
 pub use bezier::{CatmullRomSpline, PathEvaluate2D, tangent_angle, tangent_angle_deg};
 pub use motion_path::{PolyPath, CompoundPath, PathCommand};
-pub use svg_path::SvgPathParser;
+pub use svg_draw::{draw_on, draw_on_reverse};
+pub use morph::{MorphPath, resample};
+pub use inertia::{Inertia, InertiaN, InertiaConfig};
+pub use drag::{DragState, DragConstraints, DragAxis, PointerData};
 ```
 
 ---
@@ -668,6 +679,7 @@ std      = []
 serde    = ["dep:serde"]
 bevy     = ["dep:bevy_app", "dep:bevy_ecs", "dep:bevy_time", "std"]
 wasm     = ["dep:wasm-bindgen", "dep:js-sys", "std"]
+wasm-dom = ["wasm", "dep:web-sys"]
 palette  = ["dep:palette"]
 tokio    = ["dep:tokio", "std"]
 
@@ -696,7 +708,8 @@ harness = false
 |---------------------|----------------------|
 | A TUI app | `default` (just `std`) |
 | A Bevy game | `bevy` |
-| A WASM web app | `wasm`, no `std` |
+| A WASM web app | `wasm` |
+| A WASM app with DOM plugins | `wasm-dom` |
 | A CLI tool | `default` |
 | Embedded / `no_std` | disable default: `default-features = false` |
 | Full everything | `std,serde,bevy,wasm,palette,tokio` |
@@ -1156,6 +1169,7 @@ Before running `cargo publish`:
 | `0.5.0` | `spring` generics & Bevy polish — SpringN<T>, SpringSettled event, AnimationLabel |
 | `0.6.0` | `wasm` & web polish — RafDriver enhancements, start_raf_loop, Leptos/Dioxus guides |
 | `0.7.0` | Colour & advanced interpolation — 9 palette types, InLab/InOklch/InLinear, SpringAnimatable |
+| `0.8.0` | GSAP-class features — DrawSVG, MorphPath, Inertia, 5 advanced easings, DragState, WASM-DOM plugins (FLIP, SplitText, ScrollSmoother, Draggable, Observer) |
 | `1.0.0` | Stable API, full docs, all examples |
 
 ---
@@ -1255,5 +1269,5 @@ can inspect and mutate them directly without getters.
 
 ---
 
-*Document version: 0.7 — covers planned scope through spanda 1.0.0*
+*Document version: 0.8 — covers planned scope through spanda 1.0.0*
 *Project: Aarambh Dev Hub — github.com/aarambh-darshan/spanda*
