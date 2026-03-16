@@ -24,10 +24,6 @@ All core modules are **complete and tested**:
 
 ---
 
-## Coming Soon (Next Release)
-
-Features bringing the ergonomics of GSAP to Rust.
-
 ### Stagger Utilities
 
 Automatically offset animations across a collection of targets — no more manual delay math:

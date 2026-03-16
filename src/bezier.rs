@@ -8,7 +8,7 @@
 //! - `0.0` → straight lines between points
 //! - `0.5` → standard Catmull-Rom (default)
 //! - `1.0` → maximum curvature
-//! - `>1.0` → exaggerated curvature (GSAP `curviness`)
+//! - `>1.0` → exaggerated curvature
 //!
 //! # Example
 //!
