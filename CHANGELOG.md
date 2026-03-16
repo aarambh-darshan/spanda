@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.0] — 2026-03-15
+## [0.8.0]
 
 ### Added
 
@@ -43,7 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New examples: `morph_demo`, `inertia_demo`
 - New integration test: `tests/v080_pure.rs` (10 tests)
 
-## [0.7.0] — 2026-03-15
+## [0.7.0]
 
 ### Added
 
@@ -64,7 +64,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - New integration test: `tests/colour_interpolation.rs` (7 tests)
 - New documentation: `docs/colour.md`
 
-## [0.6.0] — 2026-03-15
+## [0.6.0]
 
 ### Added
 
@@ -88,7 +88,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated `docs/integrations.md` with new WASM features, Leptos/Dioxus
   cross-references, and Dioxus 0.5 API examples
 
-## [0.5.0] — 2026-03-15
+## [0.5.0]
 
 ### Added
 
@@ -154,7 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Easing` enum extended with `CubicBezier` and `Steps` variants
 - Updated `Easing::apply()`, `Debug`, `PartialEq`, and `name()` for new variants
 
-## [0.3.0] — 2026-03-14
+## [0.3.0]
 
 ### Added
 
@@ -194,7 +194,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `path::BezierPath`, `path::MotionPath`, `path::MotionPathTween`, and
   `path::PathEvaluate` re-exported from `lib.rs`
 
-## [0.2.0] — 2026-03-14
+## [0.2.0]
 
 ### Added
 
@@ -232,7 +232,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Timeline` now has `time_scale` field, applied to `dt` in `update()`
 - `lib.rs` re-exports updated: `snap_to`, `round_to`, `stagger`
 
-## [0.1.0] — 2026-03-13
+## [0.1.0]
 
 ### Added
 
