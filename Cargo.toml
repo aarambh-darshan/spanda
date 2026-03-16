@@ -46,3 +46,10 @@ criterion = "0.5"     # benchmarks
 [[bench]]
 name    = "easing_bench"
 harness = false
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"
