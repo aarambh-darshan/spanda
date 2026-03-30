@@ -29,6 +29,9 @@ game engines (Bevy), or native desktop apps.
 - **Advanced easings** — `RoughEase`, `SlowMo`, `ExpoScale`, `Wiggle`, `CustomBounce`
 - **Drag tracking** — `DragState` with velocity EMA, bounds, axis lock, grid snap → `InertiaN` on release
 - **WASM-DOM plugins** — FLIP animations, SplitText, ScrollSmoother, Draggable, Observer (`wasm-dom` feature)
+- **Layout animation** — automatic FLIP-style transitions with `LayoutAnimator`, shared element transitions
+- **Gesture recognition** — `GestureRecognizer` for tap, swipe, long press, pinch, rotation
+- **GPU compute shaders** — `GpuAnimationBatch` for batch-evaluating 10,000+ tweens on the GPU (`gpu` feature)
 - **Animation driver** — manage multiple animations with auto-cleanup
 - **Clock abstraction** — wall clock, manual clock, scroll clock, and mock clock for testing
 
@@ -36,7 +39,7 @@ game engines (Bevy), or native desktop apps.
 
 ```toml
 [dependencies]
-spanda = "0.8"
+spanda = "0.9"
 ```
 
 ### Quick Example
@@ -258,6 +261,68 @@ timeline.play();
 timeline.update(0.9);
 ```
 
+### Layout Animation (FLIP)
+
+```rust
+use spanda::layout::{LayoutAnimator, Rect};
+use spanda::easing::Easing;
+
+let mut layout = LayoutAnimator::new();
+layout.track("card-1", Rect::new(0.0, 0.0, 200.0, 100.0));
+layout.track("card-2", Rect::new(0.0, 120.0, 200.0, 100.0));
+
+// After layout mutation (e.g. items reordered)
+let transitions = layout.compute_transitions(
+    &[
+        ("card-1", Rect::new(0.0, 120.0, 200.0, 100.0)),
+        ("card-2", Rect::new(0.0, 0.0, 200.0, 100.0)),
+    ],
+    0.4,
+    Easing::EaseOutCubic,
+);
+
+// In animation loop:
+layout.update(dt);
+if let Some(css) = layout.css_transform("card-1") {
+    // Apply transform to DOM element
+}
+```
+
+### Gesture Recognition
+
+```rust
+use spanda::gesture::{GestureRecognizer, Gesture};
+use spanda::drag::PointerData;
+
+let mut recognizer = GestureRecognizer::new();
+
+// Feed pointer events
+recognizer.on_pointer_down(PointerData { x: 100.0, y: 100.0, pressure: 0.5, pointer_id: 0 });
+recognizer.update(0.05);
+
+if let Some(gesture) = recognizer.on_pointer_up(PointerData { x: 400.0, y: 105.0, pressure: 0.0, pointer_id: 0 }) {
+    match gesture {
+        Gesture::Swipe { direction, velocity, .. } => println!("Swipe {:?} at {} px/s", direction, velocity),
+        Gesture::Tap { position } => println!("Tap at {:?}", position),
+        _ => {}
+    }
+}
+```
+
+### GPU Batch Animation
+
+```rust,ignore
+use spanda::gpu::GpuAnimationBatch;
+use spanda::{Tween, Easing};
+
+let mut batch = GpuAnimationBatch::new_auto(); // GPU with CPU fallback
+for i in 0..10_000 {
+    batch.push(Tween::new(0.0_f32, 1.0).duration(1.0).easing(Easing::EaseOutCubic).build());
+}
+batch.tick(1.0 / 60.0);
+let positions: &[f32] = batch.read_back();
+```
+
 ## Feature Flags
 
 | Flag       | What it adds                                          |
@@ -269,6 +334,7 @@ timeline.update(0.9);
 | `wasm-dom` | DOM plugins: FLIP, SplitText, ScrollSmoother, Draggable, Observer |
 | `palette`  | Colour interpolation via the `palette` crate          |
 | `tokio`    | `async` / `.await` on timeline completion             |
+| `gpu`      | GPU compute shader batch animation via `wgpu`         |
 
 ## Bevy Integration
 
@@ -332,6 +398,10 @@ src/
 ├── morph.rs         — MorphPath shape morphing + resample
 ├── inertia.rs       — Inertia, InertiaN friction deceleration
 ├── drag.rs          — DragState, DragConstraints, PointerData
+├── layout.rs        — LayoutAnimator, Rect, SharedElementTransition
+├── gesture.rs       — GestureRecognizer, Gesture, GestureConfig
+├── gpu.rs           — GpuAnimationBatch (feature = "gpu")
+├── gpu_tween.wgsl   — WGSL compute shader
 └── integrations/
     ├── mod.rs
     ├── bevy.rs      — SpandaPlugin  (feature = "bevy")

@@ -18,9 +18,12 @@ All core modules are **complete and tested**:
 | `keyframe.rs` — `KeyframeTrack`, `Loop` modes | ✅ Complete | 10 tests |
 | `timeline.rs` — `Timeline`, `Sequence`, callbacks | ✅ Complete | 8 tests |
 | `spring.rs` — `Spring`, `SpringConfig`, 4 presets | ✅ Complete | 8 tests |
+| `layout.rs` — `LayoutAnimator`, `Rect`, `SharedElementTransition` | ✅ Complete | 12 tests |
+| `gesture.rs` — `GestureRecognizer`, `Gesture`, `GestureConfig` | ✅ Complete | 13 tests |
+| `gpu.rs` — `GpuAnimationBatch`, compute shader (feature = `gpu`) | ✅ Complete | 8 tests |
 | `integrations/bevy.rs` — `SpandaPlugin` | ✅ Written | — |
 | `integrations/wasm.rs` — `RafDriver` | ✅ Written | — |
-| **Total** | | **60+ unit, 13 doc, 10 integration** |
+| **Total** | | **230+ unit, 13 doc, 33 integration** |
 
 ---
 
@@ -178,6 +181,26 @@ let tween = Tween::new(0.0_f32, 100.0)
 - ✅ Convenience functions: `lerp_in_lab`, `lerp_in_oklch`, `lerp_in_linear`
 - ✅ Ship colour animation example (`examples/colour_demo.rs`)
 
+### 0.8.0 — GSAP-Class Features ✅
+
+- ✅ DrawSVG effect (`draw_on`, `draw_on_reverse`)
+- ✅ MorphPath shape morphing with auto-resampling
+- ✅ Inertia & InertiaN physics
+- ✅ DragState pure-math drag tracking
+- ✅ 5 advanced easings (RoughEase, SlowMo, ExpoScale, Wiggle, CustomBounce)
+- ✅ WASM-DOM plugins (FLIP, SplitText, ScrollSmoother, Draggable, Observer)
+
+### 0.9.0 — GPU & Layout & Gestures ✅
+
+- ✅ GPU compute shader batch animation (`GpuAnimationBatch`, wgpu backend)
+- ✅ WGSL compute shader with 10 core easing functions
+- ✅ Automatic CPU fallback when no GPU adapter available
+- ✅ FLIP-style layout animation (`LayoutAnimator`, `Rect`, `SharedElementTransition`)
+- ✅ Batch list reorder, enter/exit animations, CSS transform output
+- ✅ Gesture recognition (`GestureRecognizer`, `Gesture`, `GestureConfig`)
+- ✅ Tap, long press, swipe, pinch, rotation detection
+- ✅ Configurable thresholds, multi-touch support
+
 ### 1.0.0 — Stable
 
 - No breaking API changes for at least one minor version cycle
@@ -200,8 +223,9 @@ let tween = Tween::new(0.0_f32, 100.0)
 | `0.6.0` | March 2026 | WASM RafDriver enhancements (pause/resume/visibility), start_raf_loop, Leptos & Dioxus guides |
 | `0.7.0` | March 2026 | Colour interpolation — 9 palette types, InLab/InOklch/InLinear wrappers, SpringAnimatable, colour_demo |
 | `0.8.0` | March 2026 | GSAP-class features — DrawSVG, MorphPath, Inertia, 5 advanced easings, DragState, WASM-DOM plugins (FLIP, SplitText, ScrollSmoother, Draggable, Observer) |
+| `0.9.0` | March 2026 | GPU compute shaders (wgpu), FLIP layout animation, gesture recognition (tap/swipe/pinch/rotate) |
 
 ---
 
-*Roadmap version: 2.0 — Aarambh Dev Hub / spanda*
+*Roadmap version: 2.1 — Aarambh Dev Hub / spanda*
 *Updated: March 2026*

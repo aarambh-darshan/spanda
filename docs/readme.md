@@ -39,6 +39,9 @@ This architecture makes spanda work **everywhere**:
 | **Drag** | Pure-math drag tracking with velocity, constraints, grid snap | [v080.md](v080.md) |
 | **Advanced Easings** | RoughEase, SlowMo, ExpoScale, Wiggle, CustomBounce | [easing.md](easing.md) |
 | **WASM-DOM Plugins** | FLIP, SplitText, ScrollSmoother, Draggable, Observer | [v080.md](v080.md) |
+| **Layout** | FLIP-style layout animation, SharedElementTransition | [layout.md](layout.md) |
+| **Gesture** | GestureRecognizer — tap, swipe, pinch, rotate, long press | [gesture.md](gesture.md) |
+| **GPU** | GpuAnimationBatch — batch 10K+ tweens on GPU compute shaders | [gpu.md](gpu.md) |
 | **Driver & Clock** | Manage multiple animations with time abstraction | [integrations.md](integrations.md) |
 | **Leptos** | Reactive signal integration guide | [leptos_guide.md](leptos_guide.md) |
 | **Dioxus** | Coroutine-based animation guide | [dioxus_guide.md](dioxus_guide.md) |
@@ -52,7 +55,7 @@ Add `spanda` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-spanda = "0.8"
+spanda = "0.9"
 ```
 
 ### Basic Tween
@@ -235,6 +238,7 @@ assert_eq!(driver.active_count(), 0); // completed animations are auto-removed
 | `wasm-dom` | DOM plugins: FLIP, SplitText, ScrollSmoother, Draggable, Observer | Web apps with DOM interaction |
 | `palette` | Colour interpolation via the `palette` crate | Smooth colour animations |
 | `tokio` | `async`/`.await` on timeline completion | Async workflows |
+| `gpu` | GPU compute shader batch animation via `wgpu` | Particle systems, large batches |
 
 ### Feature Flag Decision Guide
 
@@ -246,7 +250,8 @@ assert_eq!(driver.active_count(), 0); // completed animations are auto-removed
 | A WASM app with DOM plugins | `wasm-dom` |
 | A CLI tool | `default` |
 | Embedded / `no_std` | `default-features = false` |
-| Full everything | `std,serde,bevy,wasm,wasm-dom,palette,tokio` |
+| GPU-accelerated particle animations | `gpu` |
+| Full everything | `std,serde,bevy,wasm,wasm-dom,palette,tokio,gpu` |
 
 ---
 
@@ -355,6 +360,10 @@ src/
 ├── morph.rs         — MorphPath shape morphing + resample
 ├── inertia.rs       — Inertia, InertiaN friction deceleration
 ├── drag.rs          — DragState, DragConstraints, PointerData
+├── layout.rs        — LayoutAnimator, Rect, SharedElementTransition
+├── gesture.rs       — GestureRecognizer, Gesture, GestureConfig
+├── gpu.rs           — GpuAnimationBatch (feature = "gpu")
+├── gpu_tween.wgsl   — WGSL compute shader
 └── integrations/
     ├── mod.rs
     ├── bevy.rs      — SpandaPlugin  (feature = "bevy")
