@@ -1,6 +1,6 @@
 [package]
 name        = "spanda"
-version     = "0.8.0"
+version     = "0.9.0"
 edition     = "2021"
 description = "A general-purpose animation library for Rust — tweening, keyframes, timelines, and physics."
 license     = "MIT OR Apache-2.0"
@@ -20,6 +20,7 @@ wasm     = ["dep:wasm-bindgen", "dep:js-sys", "std"]
 wasm-dom = ["wasm", "dep:web-sys"]          # WASM + DOM plugins (Flip, SplitText, etc.)
 palette  = ["dep:palette"]            # Color interpolation via palette crate
 tokio    = ["dep:tokio", "std"]       # async .await on timeline completion
+gpu      = ["dep:wgpu", "dep:pollster", "dep:bytemuck", "dep:bytemuck_derive", "std"]  # GPU compute shader batch evaluation
 
 # ── dependencies ──────────────────────────────────────────────────────────────
 
@@ -38,6 +39,10 @@ web-sys      = { version = "0.3",  optional = true, features = [
 ] }
 palette      = { version = "0.7",  optional = true }
 tokio        = { version = "1",    features = ["sync"], optional = true }
+wgpu         = { version = "24",   optional = true }
+pollster     = { version = "0.4",  optional = true }
+bytemuck     = { version = "1",    optional = true }
+bytemuck_derive = { version = "1", optional = true }
 
 [dev-dependencies]
 approx    = "0.5"     # float comparison in tests

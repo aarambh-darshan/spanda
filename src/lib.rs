@@ -63,10 +63,15 @@ pub mod svg_draw;
 pub mod morph;
 pub mod inertia;
 pub mod drag;
+pub mod layout;
+pub mod gesture;
 pub mod integrations;
 
 #[cfg(feature = "palette")]
 pub mod colour;
+
+#[cfg(feature = "gpu")]
+pub mod gpu;
 
 // ── Top-level re-exports (ergonomic imports) ──────────────────────────────────
 
@@ -87,6 +92,8 @@ pub use svg_draw::{draw_on, draw_on_reverse};
 pub use morph::{MorphPath, resample};
 pub use inertia::{Inertia, InertiaN, InertiaConfig};
 pub use drag::{DragState, DragConstraints, DragAxis, PointerData};
+pub use layout::{LayoutAnimator, LayoutAnimation, LayoutTransition, Rect, SharedElementTransition};
+pub use gesture::{GestureRecognizer, Gesture, GestureConfig, SwipeDirection};
 
 #[cfg(feature = "std")]
 pub use clock::WallClock;

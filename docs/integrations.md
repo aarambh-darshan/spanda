@@ -134,7 +134,7 @@ If you use [Bevy](https://bevyengine.org), activate the `bevy` feature:
 
 ```toml
 [dependencies]
-spanda = { version = "0.8", features = ["bevy"] }
+spanda = { version = "0.9", features = ["bevy"] }
 ```
 
 This adds `SpandaPlugin`, which automatically:
@@ -197,7 +197,7 @@ Activate the `wasm` feature:
 
 ```toml
 [dependencies]
-spanda = { version = "0.8", features = ["wasm"] }
+spanda = { version = "0.9", features = ["wasm"] }
 ```
 
 Use `RafDriver` — pass it the high-resolution timestamp from JavaScript.  New in 0.6: pause/resume, time scale, visibility change handling, and `start_raf_loop`:
@@ -378,7 +378,7 @@ For web apps that need direct DOM interaction, the `wasm-dom` feature adds five 
 
 ```toml
 [dependencies]
-spanda = { version = "0.8", features = ["wasm-dom"] }
+spanda = { version = "0.9", features = ["wasm-dom"] }
 ```
 
 > `wasm-dom` implies `wasm`, so you don't need to specify both.
@@ -598,7 +598,7 @@ Spanda works in `no_std` environments — disable the default `std` feature:
 
 ```toml
 [dependencies]
-spanda = { version = "0.8", default-features = false }
+spanda = { version = "0.9", default-features = false }
 ```
 
 In `no_std` mode:

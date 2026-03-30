@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0]
+
+### Added
+
+- **GPU Compute Shaders** (`gpu` module, `gpu` feature):
+  - `GpuAnimationBatch` — batch evaluate thousands of `f32` tweens on the GPU
+  - `GpuContext` — shared wgpu `Device` and `Queue`
+  - `try_create_gpu_context()` — auto-detect GPU adapter
+  - `new_auto()` — GPU with automatic CPU fallback
+  - `new_cpu_fallback()` — same API, CPU-only
+  - WGSL compute shader with 10 core easing functions
+  - Automatic buffer resizing for growing batches
+  - Example: `examples/gpu_batch_demo.rs`
+- **Layout Animation** (`layout` module):
+  - `Rect` — captured element bounding rect
+  - `LayoutAnimator` — track elements by ID, auto-generate FLIP animations
+  - `LayoutAnimation` — translate + scale tween bundle
+  - `LayoutTransition` — element ID + animation
+  - `SharedElementTransition` — cross-view hero transitions
+  - `animate_reorder()` — batch list reorder with FLIP
+  - `animate_enter()` / `animate_exit()` — addition/removal animations
+  - `css_transform()` — ready-to-use CSS transform strings
+  - DOM binding via `wasm-dom` feature (`Rect::from_element`, `track_element`)
+- **Gesture Recognition** (`gesture` module):
+  - `GestureRecognizer` — platform-agnostic gesture detection
+  - `Gesture` enum: `Tap`, `LongPress`, `Swipe`, `Pinch`, `Rotate`
+  - `SwipeDirection` — cardinal direction (Up, Down, Left, Right)
+  - `GestureConfig` — configurable detection thresholds
+  - Callback support: `on_gesture()` (std feature)
+  - Multi-touch: simultaneous pinch and rotation detection
+  - Example: `examples/gesture_demo.rs`
+
+### Dependencies
+
+- `wgpu` 24 (optional, `gpu` feature)
+- `pollster` 0.4 (optional, `gpu` feature)
+- `bytemuck` 1 + `bytemuck_derive` 1 (optional, `gpu` feature)
+
 ## [0.8.0]
 
 ### Added

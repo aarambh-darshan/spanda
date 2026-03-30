@@ -106,6 +106,10 @@ spanda/
     ├── morph.rs             ← MorphPath shape morphing + resample
     ├── inertia.rs           ← Inertia, InertiaN friction deceleration
     ├── drag.rs              ← DragState, DragConstraints, PointerData
+    ├── layout.rs            ← LayoutAnimator, Rect, SharedElementTransition
+    ├── gesture.rs           ← GestureRecognizer, Gesture, GestureConfig
+    ├── gpu.rs               ← GpuAnimationBatch (feature = "gpu")
+    ├── gpu_tween.wgsl       ← WGSL compute shader for batch tweens
     └── integrations/
         ├── mod.rs
         ├── bevy.rs          ← SpandaPlugin (feature = "bevy")
@@ -663,7 +667,7 @@ pub use drag::{DragState, DragConstraints, DragAxis, PointerData};
 ```toml
 [package]
 name        = "spanda"
-version     = "0.1.0"
+version     = "0.9.0"
 edition     = "2021"
 description = "A general-purpose animation library for Rust — tweening, keyframes, timelines, and physics."
 license     = "MIT OR Apache-2.0"
@@ -682,6 +686,7 @@ wasm     = ["dep:wasm-bindgen", "dep:js-sys", "std"]
 wasm-dom = ["wasm", "dep:web-sys"]
 palette  = ["dep:palette"]
 tokio    = ["dep:tokio", "std"]
+gpu      = ["dep:wgpu", "dep:pollster", "dep:bytemuck", "dep:bytemuck_derive", "std"]
 
 [dependencies]
 serde        = { version = "1",    features = ["derive"], optional = true }
@@ -692,6 +697,10 @@ wasm-bindgen = { version = "0.2",  optional = true }
 js-sys       = { version = "0.3",  optional = true }
 palette      = { version = "0.7",  optional = true }
 tokio        = { version = "1",    features = ["sync"], optional = true }
+wgpu         = { version = "24",   optional = true }
+pollster     = { version = "0.4",  optional = true }
+bytemuck     = { version = "1",    optional = true }
+bytemuck_derive = { version = "1", optional = true }
 
 [dev-dependencies]
 approx    = "0.5"
@@ -711,8 +720,9 @@ harness = false
 | A WASM web app | `wasm` |
 | A WASM app with DOM plugins | `wasm-dom` |
 | A CLI tool | `default` |
+| GPU-accelerated particle animations | `gpu` |
 | Embedded / `no_std` | disable default: `default-features = false` |
-| Full everything | `std,serde,bevy,wasm,palette,tokio` |
+| Full everything | `std,serde,bevy,wasm,palette,tokio,gpu` |
 
 ---
 
@@ -1269,5 +1279,5 @@ can inspect and mutate them directly without getters.
 
 ---
 
-*Document version: 0.8 — covers planned scope through spanda 1.0.0*
+*Document version: 0.9 — covers planned scope through spanda 1.0.0*
 *Project: Aarambh Dev Hub — github.com/aarambh-darshan/spanda*

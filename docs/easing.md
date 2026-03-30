@@ -343,7 +343,7 @@ With the `serde` feature enabled, all named easing variants are serialisable/des
 
 ```toml
 [dependencies]
-spanda = { version = "0.8", features = ["serde"] }
+spanda = { version = "0.9", features = ["serde"] }
 ```
 
 The `Custom` variant is `#[serde(skip)]` — function pointers cannot be serialised.
