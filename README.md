@@ -39,7 +39,7 @@ game engines (Bevy), or native desktop apps.
 
 ```toml
 [dependencies]
-spanda = "0.9"
+spanda = "0.9.1"
 ```
 
 ### Quick Example
