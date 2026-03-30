@@ -8,7 +8,7 @@ Integrate spanda animations directly into [Leptos](https://leptos.dev) reactive 
 
 ```toml
 [dependencies]
-spanda = { version = "0.9", features = ["wasm"] }
+spanda = { version = "0.9.1", features = ["wasm"] }
 leptos = "0.6"
 ```
 
