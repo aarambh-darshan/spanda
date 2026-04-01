@@ -6,6 +6,57 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.9.2]
+
+### Added
+
+- **Tween Enhancements**:
+  - `Tween::set()` — immediately set a value without animation (GSAP `gsap.set()` equivalent)
+  - `on_repeat()` callback — fires each time a looping tween repeats
+  - `on_reverse_complete()` callback — fires when ping-pong tweens reverse
+
+- **Timeline Enhancements**:
+  - `Timeline::call()` — insert callback functions at specific points in timeline
+  - `Timeline::add_pause()` — insert pause points in timeline sequence
+  - `total_duration()` / `total_progress()` — query overall timeline metrics
+  - `get_entries_by_label()` — retrieve timeline entries by label name
+
+- **ScrollDriver Enhancements**:
+  - `on_enter`, `on_leave`, `on_enter_back`, `on_leave_back` callbacks — scroll position event hooks
+  - `snap_points` — define snap positions for scroll-linked animations
+  - `nearest_snap_point()` — find closest snap point to current scroll position
+
+- **DragState Enhancements**:
+  - `on_drag_start`, `on_drag_end`, `on_click`, `on_throw_update` callbacks
+  - `snap_on_release` — automatic snapping when drag ends
+  - Click vs drag detection via `click_threshold`
+
+- **Color Parsing** (`colour` module, `palette` feature):
+  - `parse_hex()` — parse hex color strings (#RGB, #RGBA, #RRGGBB, #RRGGBBAA)
+  - `parse_named()` — parse CSS named colors (red, blue, transparent, etc.)
+  - `parse_color()` — auto-detect and parse either format
+
+- **MotionPath Enhancements**:
+  - `get_relative_position()` — find progress along path for any world point
+  - `closest_point()` — find nearest point on path with distance
+
+- **MorphPath Enhancements**:
+  - `ShapeIndex` enum — control point correspondence during shape morphing
+  - `ShapeIndex::auto()` — automatic rotation optimization for smoother morphs
+  - `shape_index()` builder method
+
+- **Observer Enhancements** (`wasm-dom` feature):
+  - `ObserverOptions` — tolerance, preventDefault, allowClicks, capture, lockAxis
+  - `bind_with_options()` — configurable event observation
+
+- **SplitText Enhancements**:
+  - `SplitTextOptions` — word_delimiter, chars_class, words_class, lines_class
+  - `from_str_with_options()` — split with custom configuration
+  - `rebuild()` — re-split with new options
+
+- **FLIP Animation Callbacks**:
+  - `on_enter`, `on_leave`, `on_complete` callbacks for FlipAnimation
+
 ## [0.9.1]
 
 ### Fixed

@@ -48,6 +48,7 @@ pub struct MorphPathBuilder {
     to_points: Vec<[f32; 2]>,
     duration: f32,
     easing: Easing,
+    shape_index: ShapeIndex,
 }
 
 impl MorphPath {
@@ -61,6 +62,7 @@ impl MorphPath {
             to_points: to,
             duration: 1.0,
             easing: Easing::Linear,
+            shape_index: ShapeIndex::None,
         }
     }
 
@@ -139,11 +141,24 @@ impl MorphPathBuilder {
         self
     }
 
+    /// Set the shape index for point correspondence.
+    ///
+    /// GSAP equivalent: `shapeIndex` property.
+    ///
+    /// Controls which points in the source shape map to which points in
+    /// the target shape. Use `ShapeIndex::Auto` for automatic detection
+    /// of the best rotation, or `ShapeIndex::Offset(n)` for manual control.
+    pub fn shape_index(mut self, index: ShapeIndex) -> Self {
+        self.shape_index = index;
+        self
+    }
+
     /// Build the `MorphPath`. Auto-resamples if point counts differ.
     pub fn build(mut self) -> MorphPath {
         let from_len = self.from_points.len();
         let to_len = self.to_points.len();
 
+        // Resample to match point counts
         if from_len != to_len && from_len > 0 && to_len > 0 {
             let target = from_len.max(to_len);
             if from_len < target {
@@ -153,9 +168,18 @@ impl MorphPathBuilder {
             }
         }
 
+        // Apply shape index rotation to target points
+        let to_points = match self.shape_index {
+            ShapeIndex::Auto => {
+                let best = ShapeIndex::auto(&self.from_points, &self.to_points);
+                best.apply(&self.to_points)
+            }
+            other => other.apply(&self.to_points),
+        };
+
         MorphPath {
             from_points: self.from_points,
-            to_points: self.to_points,
+            to_points,
             duration: self.duration,
             easing: self.easing,
             elapsed: 0.0,
@@ -219,6 +243,115 @@ pub fn resample(points: &[[f32; 2]], target_count: usize) -> Vec<[f32; 2]> {
     }
 
     result
+}
+
+// ── ShapeIndex ──────────────────────────────────────────────────────────────
+
+/// Controls point correspondence during shape morphing.
+///
+/// GSAP equivalent: `shapeIndex` property in MorphSVGPlugin.
+///
+/// When morphing between two shapes, `ShapeIndex` determines which point
+/// in the source shape corresponds to which point in the target shape.
+/// This can dramatically affect the visual quality of the morph.
+///
+/// # Example
+///
+/// ```rust
+/// use spanda::morph::{MorphPath, ShapeIndex};
+///
+/// let triangle = vec![[0.0, 0.0], [50.0, 100.0], [100.0, 0.0]];
+/// let square   = vec![[0.0, 0.0], [0.0, 100.0], [100.0, 100.0], [100.0, 0.0]];
+///
+/// // Use auto-detection for best point alignment
+/// let index = ShapeIndex::auto(&triangle, &square);
+///
+/// let morph = MorphPath::new(triangle, square)
+///     .shape_index(index)
+///     .duration(1.0)
+///     .build();
+/// ```
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ShapeIndex {
+    /// No rotation - use points as-is (default).
+    None,
+    /// Rotate target points by this index offset.
+    ///
+    /// For a shape with N points, `Offset(k)` maps source point 0 to
+    /// target point k, source point 1 to target point (k+1) % N, etc.
+    Offset(i32),
+    /// Automatically find the best rotation to minimize morph distance.
+    Auto,
+}
+
+impl Default for ShapeIndex {
+    fn default() -> Self {
+        ShapeIndex::None
+    }
+}
+
+impl ShapeIndex {
+    /// Compute the best rotation offset for two shapes.
+    ///
+    /// Finds the rotation that minimizes the total distance between
+    /// corresponding points. Both shapes should have the same number
+    /// of points (resample first if needed).
+    pub fn auto(from: &[[f32; 2]], to: &[[f32; 2]]) -> Self {
+        if from.is_empty() || to.is_empty() || from.len() != to.len() {
+            return ShapeIndex::None;
+        }
+
+        let n = from.len();
+        let mut best_offset = 0;
+        let mut best_dist = f32::MAX;
+
+        for offset in 0..n {
+            let mut total_dist = 0.0_f32;
+            for (i, from_pt) in from.iter().enumerate() {
+                let to_idx = (i + offset) % n;
+                let dx = to[to_idx][0] - from_pt[0];
+                let dy = to[to_idx][1] - from_pt[1];
+                total_dist += dx * dx + dy * dy;
+            }
+
+            if total_dist < best_dist {
+                best_dist = total_dist;
+                best_offset = offset;
+            }
+        }
+
+        if best_offset == 0 {
+            ShapeIndex::None
+        } else {
+            ShapeIndex::Offset(best_offset as i32)
+        }
+    }
+
+    /// Apply the shape index rotation to a set of points.
+    ///
+    /// Returns a new vector with points rotated according to the index.
+    pub fn apply(&self, points: &[[f32; 2]]) -> Vec<[f32; 2]> {
+        if points.is_empty() {
+            return Vec::new();
+        }
+
+        match self {
+            ShapeIndex::None => points.to_vec(),
+            ShapeIndex::Offset(k) => {
+                let n = points.len() as i32;
+                let k = k.rem_euclid(n) as usize;
+                let mut result = Vec::with_capacity(points.len());
+                for i in 0..points.len() {
+                    result.push(points[(i + k) % points.len()]);
+                }
+                result
+            }
+            ShapeIndex::Auto => {
+                // Auto requires both shapes - caller should use ShapeIndex::auto() first
+                points.to_vec()
+            }
+        }
+    }
 }
 
 #[cfg(test)]

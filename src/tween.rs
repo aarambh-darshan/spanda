@@ -87,6 +87,12 @@ pub struct Tween<T: Animatable> {
     /// Callback fired once when the tween completes (after all loops).
     #[cfg(all(feature = "std", not(feature = "bevy")))]
     on_complete_cb: Option<Box<dyn FnMut()>>,
+    /// Callback fired when a loop iteration completes (for looping tweens).
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    on_repeat_cb: Option<Box<dyn FnMut(u32)>>,
+    /// Callback fired when reverse playback completes.
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    on_reverse_complete_cb: Option<Box<dyn FnMut()>>,
     /// Value modifier applied after interpolation in `value()`.
     #[cfg(all(feature = "std", not(feature = "bevy")))]
     modifier: Option<Box<dyn Fn(T) -> T>>,
@@ -144,6 +150,51 @@ impl<T: Animatable> Tween<T> {
     /// first argument is the "source" state, the second is the "destination".
     pub fn from(start: T, end: T) -> TweenBuilder<T> {
         Self::new(start, end)
+    }
+
+    /// GSAP-style `set` — immediately set a value without animation.
+    ///
+    /// Creates a completed tween with the given value. Useful for initial state
+    /// setup or instant transitions in timelines.
+    ///
+    /// ```rust
+    /// use spanda::tween::Tween;
+    /// use spanda::traits::Update;
+    ///
+    /// let t = Tween::set(100.0_f32);
+    /// assert!(t.is_complete());
+    /// assert!((t.value() - 100.0).abs() < 1e-6);
+    /// ```
+    pub fn set(value: T) -> Tween<T>
+    where
+        T: Clone,
+    {
+        Tween {
+            start: value.clone(),
+            end: value,
+            duration: 0.0,
+            easing: Easing::Linear,
+            delay: 0.0,
+            time_scale: 1.0,
+            looping: Loop::Once,
+            loop_count: 0,
+            forward: true,
+            started: true,
+            elapsed: 0.0,
+            state: TweenState::Completed,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_start_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_update_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_complete_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_repeat_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_reverse_complete_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            modifier: None,
+        }
     }
 
     /// Current interpolated value.
@@ -279,6 +330,27 @@ impl<T: Animatable> Tween<T> {
         self
     }
 
+    /// Register a callback that fires when a loop iteration completes.
+    ///
+    /// The callback receives the current loop count (1 after first iteration, etc.).
+    /// Does not fire on the final iteration — use `on_complete` for that.
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    pub fn on_repeat<F: FnMut(u32) + 'static>(&mut self, f: F) -> &mut Self {
+        self.on_repeat_cb = Some(Box::new(f));
+        self
+    }
+
+    /// Register a callback that fires when reverse playback completes.
+    ///
+    /// For `PingPong` mode, fires every time the tween returns to the original
+    /// start value. For manual `reverse()` calls, fires when the reversed
+    /// animation completes.
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    pub fn on_reverse_complete<F: FnMut() + 'static>(&mut self, f: F) -> &mut Self {
+        self.on_reverse_complete_cb = Some(Box::new(f));
+        self
+    }
+
     /// Set a value modifier that transforms the interpolated value before
     /// it is returned by [`Tween::value`].
     ///
@@ -342,6 +414,13 @@ impl<T: Animatable> Update for Tween<T> {
                         let leftover = self.elapsed - self.duration;
                         self.elapsed = leftover;
                         self.started = false;
+                        // Fire on_repeat callback
+                        #[cfg(all(feature = "std", not(feature = "bevy")))]
+                        {
+                            if let Some(ref mut cb) = self.on_repeat_cb {
+                                cb(self.loop_count);
+                            }
+                        }
                     }
                 }
                 Loop::Forever => {
@@ -349,14 +428,36 @@ impl<T: Animatable> Update for Tween<T> {
                     self.elapsed = leftover;
                     self.loop_count += 1;
                     self.started = false;
+                    // Fire on_repeat callback
+                    #[cfg(all(feature = "std", not(feature = "bevy")))]
+                    {
+                        if let Some(ref mut cb) = self.on_repeat_cb {
+                            cb(self.loop_count);
+                        }
+                    }
                 }
                 Loop::PingPong => {
                     let leftover = self.elapsed - self.duration;
                     self.elapsed = leftover;
                     self.loop_count += 1;
+                    let was_forward = self.forward;
                     self.forward = !self.forward;
                     core::mem::swap(&mut self.start, &mut self.end);
                     self.started = false;
+                    // Fire callbacks for PingPong
+                    #[cfg(all(feature = "std", not(feature = "bevy")))]
+                    {
+                        // Fire on_repeat for every iteration
+                        if let Some(ref mut cb) = self.on_repeat_cb {
+                            cb(self.loop_count);
+                        }
+                        // Fire on_reverse_complete when returning to start (was going backward)
+                        if !was_forward {
+                            if let Some(ref mut cb) = self.on_reverse_complete_cb {
+                                cb();
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -458,6 +559,10 @@ impl<T: Animatable> TweenBuilder<T> {
             on_update_cb: None,
             #[cfg(all(feature = "std", not(feature = "bevy")))]
             on_complete_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_repeat_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_reverse_complete_cb: None,
             #[cfg(all(feature = "std", not(feature = "bevy")))]
             modifier: None,
         }

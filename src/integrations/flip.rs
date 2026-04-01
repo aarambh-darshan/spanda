@@ -58,12 +58,17 @@ impl FlipState {
             dx, dy, sx, sy,
             duration: 0.3,
             easing: Easing::EaseOutCubic,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_enter: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_leave: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_complete: None,
         }
     }
 }
 
 /// Builder for [`FlipAnimation`].
-#[derive(Debug)]
 pub struct FlipAnimationBuilder {
     dx: f32,
     dy: f32,
@@ -71,6 +76,25 @@ pub struct FlipAnimationBuilder {
     sy: f32,
     duration: f32,
     easing: Easing,
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    on_enter: Option<Box<dyn FnMut()>>,
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    on_leave: Option<Box<dyn FnMut()>>,
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    on_complete: Option<Box<dyn FnMut()>>,
+}
+
+impl core::fmt::Debug for FlipAnimationBuilder {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("FlipAnimationBuilder")
+            .field("dx", &self.dx)
+            .field("dy", &self.dy)
+            .field("sx", &self.sx)
+            .field("sy", &self.sy)
+            .field("duration", &self.duration)
+            .field("easing", &self.easing)
+            .finish()
+    }
 }
 
 impl FlipAnimationBuilder {
@@ -83,6 +107,33 @@ impl FlipAnimationBuilder {
     /// Set the easing curve (default: EaseOutCubic).
     pub fn easing(mut self, e: Easing) -> Self {
         self.easing = e;
+        self
+    }
+
+    /// Set callback fired when animation starts (first update).
+    ///
+    /// GSAP equivalent: `onEnter` in Flip.from/to.
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    pub fn on_enter<F: FnMut() + 'static>(mut self, f: F) -> Self {
+        self.on_enter = Some(Box::new(f));
+        self
+    }
+
+    /// Set callback fired when animation completes.
+    ///
+    /// GSAP equivalent: `onLeave` in Flip.from/to.
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    pub fn on_leave<F: FnMut() + 'static>(mut self, f: F) -> Self {
+        self.on_leave = Some(Box::new(f));
+        self
+    }
+
+    /// Set callback fired on animation completion.
+    ///
+    /// GSAP equivalent: `onComplete` in FLIP animations.
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    pub fn on_complete<F: FnMut() + 'static>(mut self, f: F) -> Self {
+        self.on_complete = Some(Box::new(f));
         self
     }
 
@@ -105,6 +156,14 @@ impl FlipAnimationBuilder {
                 .duration(self.duration)
                 .easing(self.easing)
                 .build(),
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_enter_cb: self.on_enter,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_leave_cb: self.on_leave,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_complete_cb: self.on_complete,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            started: false,
         }
     }
 }
@@ -115,7 +174,6 @@ impl FlipAnimationBuilder {
 /// ```text
 /// transform: translate({tx}px, {ty}px) scale({sx}, {sy})
 /// ```
-#[derive(Debug)]
 pub struct FlipAnimation {
     /// Horizontal translation tween (px).
     pub translate_x: Tween<f32>,
@@ -125,6 +183,29 @@ pub struct FlipAnimation {
     pub scale_x: Tween<f32>,
     /// Vertical scale tween.
     pub scale_y: Tween<f32>,
+    /// Callback fired when animation starts.
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    on_enter_cb: Option<Box<dyn FnMut()>>,
+    /// Callback fired when animation exits viewport (completes).
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    on_leave_cb: Option<Box<dyn FnMut()>>,
+    /// Callback fired on completion.
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    on_complete_cb: Option<Box<dyn FnMut()>>,
+    /// Whether the animation has started (for on_enter).
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    started: bool,
+}
+
+impl core::fmt::Debug for FlipAnimation {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("FlipAnimation")
+            .field("translate_x", &self.translate_x)
+            .field("translate_y", &self.translate_y)
+            .field("scale_x", &self.scale_x)
+            .field("scale_y", &self.scale_y)
+            .finish()
+    }
 }
 
 impl FlipAnimation {
@@ -155,10 +236,35 @@ impl FlipAnimation {
 
 impl Update for FlipAnimation {
     fn update(&mut self, dt: f32) -> bool {
+        // Fire on_enter on first update
+        #[cfg(all(feature = "std", not(feature = "bevy")))]
+        if !self.started {
+            self.started = true;
+            if let Some(ref mut cb) = self.on_enter_cb {
+                cb();
+            }
+        }
+
+        let was_complete = self.is_complete();
+
         let a = self.translate_x.update(dt);
         let b = self.translate_y.update(dt);
         let c = self.scale_x.update(dt);
         let d = self.scale_y.update(dt);
-        a || b || c || d
+
+        let running = a || b || c || d;
+
+        // Fire callbacks on completion
+        #[cfg(all(feature = "std", not(feature = "bevy")))]
+        if !was_complete && self.is_complete() {
+            if let Some(ref mut cb) = self.on_leave_cb {
+                cb();
+            }
+            if let Some(ref mut cb) = self.on_complete_cb {
+                cb();
+            }
+        }
+
+        running
     }
 }

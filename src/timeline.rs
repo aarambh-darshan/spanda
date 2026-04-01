@@ -82,6 +82,18 @@ pub enum At<'a> {
 
 // ── TimelineEntry ────────────────────────────────────────────────────────────
 
+/// Type of timeline entry.
+#[derive(Debug, Clone, PartialEq)]
+enum EntryKind {
+    /// Regular animation entry.
+    Animation,
+    /// Callback entry (fires at a specific time).
+    #[cfg(feature = "std")]
+    Callback,
+    /// Pause point (timeline pauses when reached).
+    Pause,
+}
+
 /// A single entry in a [`Timeline`].
 struct TimelineEntry {
     /// Human-readable label.
@@ -97,6 +109,11 @@ struct TimelineEntry {
     started: bool,
     /// Whether this entry has completed.
     completed: bool,
+    /// Entry kind (animation, callback, or pause).
+    kind: EntryKind,
+    /// Callback function for callback entries.
+    #[cfg(feature = "std")]
+    callback: Option<Box<dyn FnMut()>>,
 }
 
 impl core::fmt::Debug for TimelineEntry {
@@ -107,6 +124,7 @@ impl core::fmt::Debug for TimelineEntry {
             .field("duration", &self.duration)
             .field("started", &self.started)
             .field("completed", &self.completed)
+            .field("kind", &self.kind)
             .finish()
     }
 }
@@ -171,6 +189,9 @@ impl Timeline {
             duration: 0.0, // filled in by the Sequence builder
             started: false,
             completed: false,
+            kind: EntryKind::Animation,
+            #[cfg(feature = "std")]
+            callback: None,
         });
         self
     }
@@ -222,6 +243,9 @@ impl Timeline {
             duration,
             started: false,
             completed: false,
+            kind: EntryKind::Animation,
+            #[cfg(feature = "std")]
+            callback: None,
         });
     }
 
@@ -309,6 +333,125 @@ impl Timeline {
     pub fn time_scale(&self) -> f32 {
         self.time_scale
     }
+
+    /// Total duration including all nested timelines (same as `duration()`).
+    ///
+    /// For consistency with GSAP's `totalDuration()`.
+    pub fn total_duration(&self) -> f32 {
+        self.duration()
+    }
+
+    /// Total progress from 0.0 to 1.0 (same as `progress()`).
+    ///
+    /// For consistency with GSAP's `totalProgress()`.
+    pub fn total_progress(&self) -> f32 {
+        self.progress()
+    }
+
+    /// Get the labels of all entries matching a predicate.
+    ///
+    /// GSAP-style `getTweensOf` equivalent — query animations by label pattern.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use spanda::timeline::Timeline;
+    /// use spanda::tween::Tween;
+    ///
+    /// let timeline = Timeline::new()
+    ///     .add("fade_in", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0)
+    ///     .add("fade_out", Tween::new(1.0_f32, 0.0).duration(0.5).build(), 0.5);
+    ///
+    /// let fades: Vec<_> = timeline.get_entries_by_label(|l| l.starts_with("fade")).collect();
+    /// assert_eq!(fades.len(), 2);
+    /// ```
+    pub fn get_entries_by_label<'a, F>(&'a self, predicate: F) -> impl Iterator<Item = &'a str>
+    where
+        F: Fn(&str) -> bool + 'a,
+    {
+        self.entries
+            .iter()
+            .filter(move |e| predicate(&e.label))
+            .map(|e| e.label.as_str())
+    }
+
+    /// Insert a callback at a specific time in the timeline.
+    ///
+    /// GSAP-style `.call()` — the callback fires when the timeline reaches
+    /// the specified time.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let mut timeline = Timeline::new()
+    ///     .add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+    ///
+    /// timeline.call(0.25, || println!("Halfway through fade!"));
+    /// timeline.play();
+    /// ```
+    #[cfg(feature = "std")]
+    pub fn call<F: FnMut() + 'static>(&mut self, time: f32, callback: F) {
+        // Create a no-op animation that immediately completes
+        struct NoOp;
+        impl Update for NoOp {
+            fn update(&mut self, _dt: f32) -> bool {
+                false
+            }
+        }
+
+        self.entries.push(TimelineEntry {
+            label: format!("__call_{:.3}", time),
+            animation: Box::new(NoOp),
+            start_at: time.max(0.0),
+            duration: 0.0,
+            started: false,
+            completed: false,
+            kind: EntryKind::Callback,
+            callback: Some(Box::new(callback)),
+        });
+    }
+
+    /// Insert a pause point at a specific time in the timeline.
+    ///
+    /// GSAP-style `.addPause()` — the timeline pauses when it reaches this time.
+    /// Use `timeline.resume()` to continue playback.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use spanda::timeline::{Timeline, TimelineState};
+    /// use spanda::tween::Tween;
+    /// use spanda::traits::Update;
+    ///
+    /// let mut timeline = Timeline::new()
+    ///     .add("fade", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+    ///
+    /// timeline.add_pause(0.5); // Pause halfway through
+    /// timeline.play();
+    /// timeline.update(0.6); // Will pause at 0.5
+    /// assert_eq!(*timeline.state(), TimelineState::Paused);
+    /// ```
+    pub fn add_pause(&mut self, time: f32) {
+        // Create a no-op animation that immediately completes
+        struct NoOp;
+        impl Update for NoOp {
+            fn update(&mut self, _dt: f32) -> bool {
+                false
+            }
+        }
+
+        self.entries.push(TimelineEntry {
+            label: format!("__pause_{:.3}", time),
+            animation: Box::new(NoOp),
+            start_at: time.max(0.0),
+            duration: 0.0,
+            started: false,
+            completed: false,
+            kind: EntryKind::Pause,
+            #[cfg(feature = "std")]
+            callback: None,
+        });
+    }
 }
 
 impl Default for Timeline {
@@ -327,6 +470,7 @@ impl Update for Timeline {
         self.elapsed += dt;
 
         let mut all_done = true;
+        let mut should_pause = false;
 
         for entry in &mut self.entries {
             if entry.completed {
@@ -335,26 +479,56 @@ impl Update for Timeline {
 
             // Check if this entry should be active
             if self.elapsed >= entry.start_at {
-                // Compute the effective dt for this entry.
-                // If the entry just started this frame, only give it the leftover
-                // time after its start_at, not the full frame dt.
-                let entry_dt = if !entry.started {
-                    entry.started = true;
-                    // Time that has elapsed since this entry's start_at
-                    (self.elapsed - entry.start_at).min(dt)
-                } else {
-                    dt
-                };
+                match entry.kind {
+                    EntryKind::Pause => {
+                        if !entry.started {
+                            entry.started = true;
+                            entry.completed = true;
+                            should_pause = true;
+                            // Clamp elapsed to the pause point
+                            self.elapsed = entry.start_at;
+                        }
+                    }
+                    #[cfg(feature = "std")]
+                    EntryKind::Callback => {
+                        if !entry.started {
+                            entry.started = true;
+                            entry.completed = true;
+                            // Fire the callback
+                            if let Some(ref mut cb) = entry.callback {
+                                cb();
+                            }
+                        }
+                    }
+                    EntryKind::Animation => {
+                        // Compute the effective dt for this entry.
+                        // If the entry just started this frame, only give it the leftover
+                        // time after its start_at, not the full frame dt.
+                        let entry_dt = if !entry.started {
+                            entry.started = true;
+                            // Time that has elapsed since this entry's start_at
+                            (self.elapsed - entry.start_at).min(dt)
+                        } else {
+                            dt
+                        };
 
-                let still_running = entry.animation.update(entry_dt);
-                if !still_running {
-                    entry.completed = true;
-                } else {
-                    all_done = false;
+                        let still_running = entry.animation.update(entry_dt);
+                        if !still_running {
+                            entry.completed = true;
+                        } else {
+                            all_done = false;
+                        }
+                    }
                 }
             } else {
                 all_done = false;
             }
+        }
+
+        // Handle pause after processing all entries
+        if should_pause {
+            self.state = TimelineState::Paused;
+            return true;
         }
 
         if all_done && !self.entries.is_empty() {
@@ -460,6 +634,9 @@ impl Sequence {
                 duration,
                 started: false,
                 completed: false,
+                kind: EntryKind::Animation,
+                #[cfg(feature = "std")]
+                callback: None,
             });
         }
 
@@ -533,6 +710,9 @@ pub fn stagger<A: Update + 'static>(
             duration,
             started: false,
             completed: false,
+            kind: EntryKind::Animation,
+            #[cfg(feature = "std")]
+            callback: None,
         });
     }
 

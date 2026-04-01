@@ -149,6 +149,24 @@ pub struct ScrollDriver {
     clock: ScrollClock,
     animations: Vec<(AnimationId, Box<dyn Update>)>,
     next_id: u64,
+    /// Previous progress for direction/enter/leave detection.
+    prev_progress: f32,
+    /// Whether we're currently "inside" the scroll range.
+    inside: bool,
+    /// Scroll snap points (progress values to snap to).
+    snap_points: Vec<f32>,
+    /// Callback fired when scrolling enters the range (progress crosses 0.0 going forward).
+    #[cfg(feature = "std")]
+    on_enter_cb: Option<Box<dyn FnMut()>>,
+    /// Callback fired when scrolling leaves the range (progress crosses 1.0 going forward).
+    #[cfg(feature = "std")]
+    on_leave_cb: Option<Box<dyn FnMut()>>,
+    /// Callback fired when scrolling enters from the back (progress crosses 1.0 going backward).
+    #[cfg(feature = "std")]
+    on_enter_back_cb: Option<Box<dyn FnMut()>>,
+    /// Callback fired when scrolling leaves from the back (progress crosses 0.0 going backward).
+    #[cfg(feature = "std")]
+    on_leave_back_cb: Option<Box<dyn FnMut()>>,
 }
 
 impl ScrollDriver {
@@ -158,6 +176,17 @@ impl ScrollDriver {
             clock: ScrollClock::new(start, end),
             animations: Vec::new(),
             next_id: 0,
+            prev_progress: 0.0,
+            inside: false,
+            snap_points: Vec::new(),
+            #[cfg(feature = "std")]
+            on_enter_cb: None,
+            #[cfg(feature = "std")]
+            on_leave_cb: None,
+            #[cfg(feature = "std")]
+            on_enter_back_cb: None,
+            #[cfg(feature = "std")]
+            on_leave_back_cb: None,
         }
     }
 
@@ -169,6 +198,65 @@ impl ScrollDriver {
         id
     }
 
+    /// Set scroll snap points (progress values to snap to).
+    ///
+    /// When the user stops scrolling near a snap point, the scroll position
+    /// will animate to that point.
+    pub fn set_snap_points(&mut self, points: Vec<f32>) {
+        self.snap_points = points;
+    }
+
+    /// Add a single snap point.
+    pub fn add_snap_point(&mut self, progress: f32) {
+        self.snap_points.push(progress.clamp(0.0, 1.0));
+    }
+
+    /// Get the nearest snap point to the current progress.
+    ///
+    /// Returns `None` if no snap points are configured.
+    pub fn nearest_snap_point(&self) -> Option<f32> {
+        if self.snap_points.is_empty() {
+            return None;
+        }
+        let current = self.clock.progress();
+        self.snap_points
+            .iter()
+            .min_by(|a, b| {
+                let da = (current - **a).abs();
+                let db = (current - **b).abs();
+                da.partial_cmp(&db).unwrap_or(core::cmp::Ordering::Equal)
+            })
+            .copied()
+    }
+
+    /// Register a callback fired when scrolling enters the range (going forward).
+    #[cfg(feature = "std")]
+    pub fn on_enter<F: FnMut() + 'static>(&mut self, f: F) -> &mut Self {
+        self.on_enter_cb = Some(Box::new(f));
+        self
+    }
+
+    /// Register a callback fired when scrolling leaves the range (going forward).
+    #[cfg(feature = "std")]
+    pub fn on_leave<F: FnMut() + 'static>(&mut self, f: F) -> &mut Self {
+        self.on_leave_cb = Some(Box::new(f));
+        self
+    }
+
+    /// Register a callback fired when scrolling enters from the back (going backward).
+    #[cfg(feature = "std")]
+    pub fn on_enter_back<F: FnMut() + 'static>(&mut self, f: F) -> &mut Self {
+        self.on_enter_back_cb = Some(Box::new(f));
+        self
+    }
+
+    /// Register a callback fired when scrolling leaves from the back (going backward).
+    #[cfg(feature = "std")]
+    pub fn on_leave_back<F: FnMut() + 'static>(&mut self, f: F) -> &mut Self {
+        self.on_leave_back_cb = Some(Box::new(f));
+        self
+    }
+
     /// Set the current scroll position and tick all animations.
     ///
     /// This is the primary method — call it whenever the scroll position
@@ -176,6 +264,46 @@ impl ScrollDriver {
     pub fn set_position(&mut self, position: f32) {
         self.clock.set_position(position);
         let dt = self.clock.delta();
+
+        let new_progress = self.clock.progress();
+        let old_progress = self.prev_progress;
+        let going_forward = new_progress > old_progress;
+
+        // Check for enter/leave callbacks
+        #[cfg(feature = "std")]
+        {
+            // Enter from start (0.0 crossed going forward)
+            if !self.inside && going_forward && old_progress < 0.01 && new_progress >= 0.01 {
+                self.inside = true;
+                if let Some(ref mut cb) = self.on_enter_cb {
+                    cb();
+                }
+            }
+            // Leave at end (1.0 crossed going forward)
+            if self.inside && going_forward && old_progress < 0.99 && new_progress >= 0.99 {
+                self.inside = false;
+                if let Some(ref mut cb) = self.on_leave_cb {
+                    cb();
+                }
+            }
+            // Enter from back (1.0 crossed going backward)
+            if !self.inside && !going_forward && old_progress > 0.99 && new_progress <= 0.99 {
+                self.inside = true;
+                if let Some(ref mut cb) = self.on_enter_back_cb {
+                    cb();
+                }
+            }
+            // Leave at start (0.0 crossed going backward)
+            if self.inside && !going_forward && old_progress > 0.01 && new_progress <= 0.01 {
+                self.inside = false;
+                if let Some(ref mut cb) = self.on_leave_back_cb {
+                    cb();
+                }
+            }
+        }
+
+        self.prev_progress = new_progress;
+
         if dt.abs() > 1e-10 {
             self.animations.retain_mut(|(_, anim)| anim.update(dt));
         }

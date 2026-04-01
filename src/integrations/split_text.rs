@@ -20,6 +20,98 @@ use crate::timeline::{stagger, Timeline};
 use crate::tween::Tween;
 use crate::traits::Animatable;
 
+/// Configuration options for [`SplitText`].
+///
+/// GSAP equivalent: SplitText options like `wordDelimiter`, `charsClass`, etc.
+#[derive(Debug, Clone)]
+pub struct SplitTextOptions {
+    /// Custom word delimiter pattern. Default is whitespace.
+    ///
+    /// GSAP equivalent: `wordDelimiter`.
+    pub word_delimiter: Option<String>,
+
+    /// CSS class to apply to character spans.
+    ///
+    /// GSAP equivalent: `charsClass`.
+    pub chars_class: Option<String>,
+
+    /// CSS class to apply to word spans.
+    ///
+    /// GSAP equivalent: `wordsClass`.
+    pub words_class: Option<String>,
+
+    /// CSS class to apply to line spans.
+    ///
+    /// GSAP equivalent: `linesClass`.
+    pub lines_class: Option<String>,
+
+    /// Whether to include whitespace as separate elements.
+    ///
+    /// If true, spaces become their own spans. Default is false.
+    pub split_whitespace: bool,
+
+    /// Whether to preserve original element content for later rebuilding.
+    ///
+    /// GSAP equivalent: used by `revert()`.
+    pub preserve_original: bool,
+}
+
+impl Default for SplitTextOptions {
+    fn default() -> Self {
+        Self {
+            word_delimiter: None,
+            chars_class: None,
+            words_class: None,
+            lines_class: None,
+            split_whitespace: false,
+            preserve_original: true,
+        }
+    }
+}
+
+impl SplitTextOptions {
+    /// Create new options with default values.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set a custom word delimiter.
+    pub fn word_delimiter(mut self, delimiter: impl Into<String>) -> Self {
+        self.word_delimiter = Some(delimiter.into());
+        self
+    }
+
+    /// Set CSS class for character spans.
+    pub fn chars_class(mut self, class: impl Into<String>) -> Self {
+        self.chars_class = Some(class.into());
+        self
+    }
+
+    /// Set CSS class for word spans.
+    pub fn words_class(mut self, class: impl Into<String>) -> Self {
+        self.words_class = Some(class.into());
+        self
+    }
+
+    /// Set CSS class for line spans.
+    pub fn lines_class(mut self, class: impl Into<String>) -> Self {
+        self.lines_class = Some(class.into());
+        self
+    }
+
+    /// Set whether to split whitespace into separate elements.
+    pub fn split_whitespace(mut self, split: bool) -> Self {
+        self.split_whitespace = split;
+        self
+    }
+
+    /// Set whether to preserve original content.
+    pub fn preserve_original(mut self, preserve: bool) -> Self {
+        self.preserve_original = preserve;
+        self
+    }
+}
+
 /// A single character with index metadata.
 #[derive(Debug, Clone)]
 pub struct SplitChar {
@@ -50,19 +142,41 @@ pub struct SplitText {
     chars: Vec<SplitChar>,
     words: Vec<SplitWord>,
     original: String,
+    options: SplitTextOptions,
 }
 
 impl SplitText {
     /// Split a string into characters and words. Works everywhere (no DOM).
     pub fn from_str(text: &str) -> Self {
+        Self::from_str_with_options(text, SplitTextOptions::default())
+    }
+
+    /// Split a string with custom options.
+    ///
+    /// GSAP equivalent: `new SplitText(element, { wordDelimiter, ... })`
+    pub fn from_str_with_options(text: &str, options: SplitTextOptions) -> Self {
         let mut chars = Vec::new();
         let mut words = Vec::new();
         let mut word_index = 0;
         let mut char_index = 0;
 
-        for word_str in text.split_whitespace() {
-            let char_start = text.find(word_str).unwrap_or(char_index);
-            // Add space characters between words (if any)
+        // Use custom delimiter or default whitespace splitting
+        let word_strs: Vec<&str> = if let Some(ref delim) = options.word_delimiter {
+            text.split(delim.as_str()).collect()
+        } else {
+            text.split_whitespace().collect()
+        };
+
+        for word_str in word_strs {
+            if word_str.is_empty() {
+                continue;
+            }
+
+            let char_start = text[char_index..].find(word_str)
+                .map(|i| i + char_index)
+                .unwrap_or(char_index);
+
+            // Add space/delimiter characters between words (if any)
             while char_index < char_start {
                 if let Some(ch) = text.chars().nth(char_index) {
                     chars.push(SplitChar {
@@ -109,6 +223,7 @@ impl SplitText {
             chars,
             words,
             original: text.to_string(),
+            options,
         }
     }
 
@@ -135,6 +250,18 @@ impl SplitText {
     /// The original text.
     pub fn original(&self) -> &str {
         &self.original
+    }
+
+    /// Get the options used for splitting.
+    pub fn options(&self) -> &SplitTextOptions {
+        &self.options
+    }
+
+    /// Rebuild the split with new options.
+    ///
+    /// GSAP equivalent: `split.revert()` followed by `new SplitText()`
+    pub fn rebuild(&self, options: SplitTextOptions) -> Self {
+        Self::from_str_with_options(&self.original, options)
     }
 
     /// Create a staggered [`Timeline`] for each character.
@@ -187,6 +314,8 @@ impl SplitText {
     /// Clears the parent's content first, then creates one `<span>` per
     /// character with `display: inline-block` for individual animation.
     /// Space characters become `&nbsp;`.
+    ///
+    /// If `chars_class` is set in options, applies that CSS class to each span.
     #[cfg(feature = "wasm-dom")]
     pub fn inject_chars(&self, parent: &web_sys::Element) {
         parent.set_inner_html("");
@@ -196,6 +325,12 @@ impl SplitText {
             let span = doc.create_element("span").unwrap();
             let _ = span.set_attribute("style", "display:inline-block");
             let _ = span.set_attribute("data-char-index", &sc.index.to_string());
+
+            // Apply custom CSS class if set
+            if let Some(ref class) = self.options.chars_class {
+                let _ = span.set_attribute("class", class);
+            }
+
             if sc.ch == ' ' {
                 span.set_inner_html("&nbsp;");
             } else {
@@ -208,6 +343,8 @@ impl SplitText {
     /// Wrap each word in a `<span>` inside the parent element.
     ///
     /// Words are separated by spaces. Each `<span>` has `display: inline-block`.
+    ///
+    /// If `words_class` is set in options, applies that CSS class to each span.
     #[cfg(feature = "wasm-dom")]
     pub fn inject_words(&self, parent: &web_sys::Element) {
         parent.set_inner_html("");
@@ -222,6 +359,12 @@ impl SplitText {
             let span = doc.create_element("span").unwrap();
             let _ = span.set_attribute("style", "display:inline-block");
             let _ = span.set_attribute("data-word-index", &sw.index.to_string());
+
+            // Apply custom CSS class if set
+            if let Some(ref class) = self.options.words_class {
+                let _ = span.set_attribute("class", class);
+            }
+
             span.set_text_content(Some(&sw.text));
             let _ = parent.append_child(&span);
         }

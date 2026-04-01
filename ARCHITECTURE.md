@@ -667,7 +667,7 @@ pub use drag::{DragState, DragConstraints, DragAxis, PointerData};
 ```toml
 [package]
 name        = "spanda"
-version     = "0.9.1"
+version     = "0.9.2"
 edition     = "2021"
 description = "A general-purpose animation library for Rust — tweening, keyframes, timelines, and physics."
 license     = "MIT OR Apache-2.0"
@@ -1279,5 +1279,5 @@ can inspect and mutate them directly without getters.
 
 ---
 
-*Document version: 0.9.1 — covers planned scope through spanda 1.0.0*
+*Document version: 0.9.2 — covers planned scope through spanda 1.0.0*
 *Project: Aarambh Dev Hub — github.com/aarambh-darshan/spanda*

@@ -44,8 +44,10 @@ pub struct DragConstraints {
     pub bounds: Option<[f32; 4]>,
     /// Lock movement to a single axis.
     pub axis_lock: Option<DragAxis>,
-    /// Snap position to a grid. `[grid_x, grid_y]`.
+    /// Snap position to a grid during drag. `[grid_x, grid_y]`.
     pub snap_to_grid: Option<[f32; 2]>,
+    /// Snap position to grid on release (different from live snap).
+    pub snap_on_release: Option<[f32; 2]>,
 }
 
 /// Axis constraint for dragging.
@@ -61,7 +63,6 @@ pub enum DragAxis {
 ///
 /// Tracks pointer position, computes velocity via exponential moving average,
 /// and applies constraints. No DOM dependency.
-#[derive(Debug, Clone)]
 pub struct DragState {
     position: [f32; 2],
     velocity: [f32; 2],
@@ -70,6 +71,35 @@ pub struct DragState {
     start_position: [f32; 2],
     last_pointer: [f32; 2],
     constraints: DragConstraints,
+    /// Callback fired when drag starts.
+    #[cfg(feature = "std")]
+    on_drag_start_cb: Option<Box<dyn FnMut([f32; 2])>>,
+    /// Callback fired when drag ends.
+    #[cfg(feature = "std")]
+    on_drag_end_cb: Option<Box<dyn FnMut([f32; 2], [f32; 2])>>,
+    /// Callback fired on click (tap without significant movement).
+    #[cfg(feature = "std")]
+    on_click_cb: Option<Box<dyn FnMut([f32; 2])>>,
+    /// Callback fired each frame during inertia throw (if using manual update).
+    #[cfg(feature = "std")]
+    on_throw_update_cb: Option<Box<dyn FnMut([f32; 2], [f32; 2])>>,
+    /// Click detection threshold (max distance moved to count as click).
+    click_threshold: f32,
+}
+
+impl core::fmt::Debug for DragState {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("DragState")
+            .field("position", &self.position)
+            .field("velocity", &self.velocity)
+            .field("dragging", &self.dragging)
+            .field("start_pointer", &self.start_pointer)
+            .field("start_position", &self.start_position)
+            .field("last_pointer", &self.last_pointer)
+            .field("constraints", &self.constraints)
+            .field("click_threshold", &self.click_threshold)
+            .finish()
+    }
 }
 
 impl DragState {
@@ -83,6 +113,15 @@ impl DragState {
             start_position: [0.0, 0.0],
             last_pointer: [0.0, 0.0],
             constraints: DragConstraints::default(),
+            #[cfg(feature = "std")]
+            on_drag_start_cb: None,
+            #[cfg(feature = "std")]
+            on_drag_end_cb: None,
+            #[cfg(feature = "std")]
+            on_click_cb: None,
+            #[cfg(feature = "std")]
+            on_throw_update_cb: None,
+            click_threshold: 5.0,
         }
     }
 
@@ -98,6 +137,48 @@ impl DragState {
         self
     }
 
+    /// Set click detection threshold (builder-style).
+    ///
+    /// If pointer moves less than this distance, it's considered a click.
+    pub fn with_click_threshold(mut self, threshold: f32) -> Self {
+        self.click_threshold = threshold;
+        self
+    }
+
+    /// Register a callback fired when drag starts.
+    #[cfg(feature = "std")]
+    pub fn on_drag_start<F: FnMut([f32; 2]) + 'static>(&mut self, f: F) -> &mut Self {
+        self.on_drag_start_cb = Some(Box::new(f));
+        self
+    }
+
+    /// Register a callback fired when drag ends.
+    ///
+    /// Callback receives `(final_position, velocity)`.
+    #[cfg(feature = "std")]
+    pub fn on_drag_end<F: FnMut([f32; 2], [f32; 2]) + 'static>(&mut self, f: F) -> &mut Self {
+        self.on_drag_end_cb = Some(Box::new(f));
+        self
+    }
+
+    /// Register a callback fired on click (tap without significant movement).
+    ///
+    /// Callback receives the click position.
+    #[cfg(feature = "std")]
+    pub fn on_click<F: FnMut([f32; 2]) + 'static>(&mut self, f: F) -> &mut Self {
+        self.on_click_cb = Some(Box::new(f));
+        self
+    }
+
+    /// Register a callback fired during inertia throw updates.
+    ///
+    /// Callback receives `(position, velocity)` each frame.
+    #[cfg(feature = "std")]
+    pub fn on_throw_update<F: FnMut([f32; 2], [f32; 2]) + 'static>(&mut self, f: F) -> &mut Self {
+        self.on_throw_update_cb = Some(Box::new(f));
+        self
+    }
+
     /// Called when a pointer/mouse/touch press begins.
     pub fn on_pointer_down(&mut self, x: f32, y: f32) {
         self.dragging = true;
@@ -105,6 +186,14 @@ impl DragState {
         self.start_position = self.position;
         self.last_pointer = [x, y];
         self.velocity = [0.0, 0.0];
+
+        // Fire on_drag_start callback
+        #[cfg(feature = "std")]
+        {
+            if let Some(ref mut cb) = self.on_drag_start_cb {
+                cb(self.position);
+            }
+        }
     }
 
     /// Called each frame while the pointer is held down.
@@ -141,6 +230,37 @@ impl DragState {
     /// the momentum from the drag.
     pub fn on_pointer_up(&mut self) -> InertiaN<[f32; 2]> {
         self.dragging = false;
+
+        // Calculate distance moved for click detection
+        let dx = self.last_pointer[0] - self.start_pointer[0];
+        let dy = self.last_pointer[1] - self.start_pointer[1];
+        let distance = (dx * dx + dy * dy).sqrt();
+
+        // Apply snap on release if configured
+        if let Some(grid) = &self.constraints.snap_on_release {
+            if grid[0] > 0.0 {
+                self.position[0] = (self.position[0] / grid[0]).round() * grid[0];
+            }
+            if grid[1] > 0.0 {
+                self.position[1] = (self.position[1] / grid[1]).round() * grid[1];
+            }
+        }
+
+        // Fire callbacks
+        #[cfg(feature = "std")]
+        {
+            // Check if this was a click (minimal movement)
+            if distance < self.click_threshold {
+                if let Some(ref mut cb) = self.on_click_cb {
+                    cb(self.position);
+                }
+            }
+
+            // Always fire on_drag_end
+            if let Some(ref mut cb) = self.on_drag_end_cb {
+                cb(self.position, self.velocity);
+            }
+        }
 
         InertiaN::new(InertiaConfig::default_flick(), self.position)
             .with_velocity(self.velocity)

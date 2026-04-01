@@ -47,7 +47,7 @@ Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-spanda = { version = "0.9.1", features = ["gpu"] }
+spanda = { version = "0.9.2", features = ["gpu"] }
 ```
 
 This enables `wgpu`, `pollster`, and `bytemuck` as dependencies.

@@ -55,7 +55,7 @@ Add `spanda` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-spanda = "0.9.1"
+spanda = "0.9.2"
 ```
 
 ### Basic Tween

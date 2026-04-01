@@ -246,6 +246,70 @@ impl PolyPath {
     pub fn rotation_deg(&self, u: f32) -> f32 {
         self.rotation(u).to_degrees()
     }
+
+    /// Get relative position along the path for a world-space point.
+    ///
+    /// Returns the progress value `u ∈ [0, 1]` for the point on the path
+    /// closest to the given world position. Useful for determining how far
+    /// along the path an object is.
+    ///
+    /// GSAP equivalent: `MotionPathPlugin.getRelativePosition()`
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use spanda::motion_path::PolyPath;
+    ///
+    /// let path = PolyPath::from_points(vec![
+    ///     [0.0, 0.0],
+    ///     [100.0, 0.0],
+    ///     [200.0, 0.0],
+    /// ]);
+    ///
+    /// // Point at [100, 0] should be ~50% along the path
+    /// let progress = path.get_relative_position([100.0, 0.0]);
+    /// assert!((progress - 0.5).abs() < 0.1);
+    /// ```
+    pub fn get_relative_position(&self, point: [f32; 2]) -> f32 {
+        self.get_relative_position_with_precision(point, 100)
+    }
+
+    /// Get relative position with custom sample precision.
+    ///
+    /// Higher sample count gives more accurate results but is slower.
+    pub fn get_relative_position_with_precision(&self, point: [f32; 2], samples: usize) -> f32 {
+        let samples = samples.max(2);
+        let mut best_u = 0.0_f32;
+        let mut best_dist_sq = f32::MAX;
+
+        for i in 0..=samples {
+            let u = i as f32 / samples as f32;
+            let p = self.position(u);
+            let dx = p[0] - point[0];
+            let dy = p[1] - point[1];
+            let dist_sq = dx * dx + dy * dy;
+
+            if dist_sq < best_dist_sq {
+                best_dist_sq = dist_sq;
+                best_u = u;
+            }
+        }
+
+        best_u
+    }
+
+    /// Get the distance from a point to the closest point on the path.
+    ///
+    /// Returns a tuple of (progress, distance) where progress is `u ∈ [0, 1]`
+    /// and distance is the Euclidean distance.
+    pub fn closest_point(&self, point: [f32; 2]) -> (f32, f32) {
+        let u = self.get_relative_position(point);
+        let p = self.position(u);
+        let dx = p[0] - point[0];
+        let dy = p[1] - point[1];
+        let dist = (dx * dx + dy * dy).sqrt();
+        (u, dist)
+    }
 }
 
 // ── CompoundPath ────────────────────────────────────────────────────────────
@@ -560,6 +624,48 @@ impl CompoundPath {
     /// Auto-rotation angle in degrees at progress `u`.
     pub fn rotation_deg(&self, u: f32) -> f32 {
         self.rotation(u).to_degrees()
+    }
+
+    /// Get relative position along the path for a world-space point.
+    ///
+    /// Returns the progress value `u ∈ [0, 1]` for the point on the path
+    /// closest to the given world position.
+    ///
+    /// GSAP equivalent: `MotionPathPlugin.getRelativePosition()`
+    pub fn get_relative_position(&self, point: [f32; 2]) -> f32 {
+        self.get_relative_position_with_precision(point, 100)
+    }
+
+    /// Get relative position with custom sample precision.
+    pub fn get_relative_position_with_precision(&self, point: [f32; 2], samples: usize) -> f32 {
+        let samples = samples.max(2);
+        let mut best_u = 0.0_f32;
+        let mut best_dist_sq = f32::MAX;
+
+        for i in 0..=samples {
+            let u = i as f32 / samples as f32;
+            let p = self.position(u);
+            let dx = p[0] - point[0];
+            let dy = p[1] - point[1];
+            let dist_sq = dx * dx + dy * dy;
+
+            if dist_sq < best_dist_sq {
+                best_dist_sq = dist_sq;
+                best_u = u;
+            }
+        }
+
+        best_u
+    }
+
+    /// Get the distance from a point to the closest point on the path.
+    pub fn closest_point(&self, point: [f32; 2]) -> (f32, f32) {
+        let u = self.get_relative_position(point);
+        let p = self.position(u);
+        let dx = p[0] - point[0];
+        let dy = p[1] - point[1];
+        let dist = (dx * dx + dy * dy).sqrt();
+        (u, dist)
     }
 }
 

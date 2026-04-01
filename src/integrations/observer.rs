@@ -24,6 +24,107 @@ pub struct ObserverCallbacks {
     pub on_wheel: Option<Box<dyn FnMut(f32, f32)>>,
 }
 
+/// Configuration options for [`Observer`].
+///
+/// GSAP equivalent: Observer `tolerance`, `preventDefault`, `allowClicks`.
+#[derive(Debug, Clone)]
+pub struct ObserverOptions {
+    /// Minimum movement distance (in pixels) before triggering move callbacks.
+    ///
+    /// GSAP equivalent: `tolerance`. Default is 0.0 (no tolerance).
+    pub tolerance: f32,
+
+    /// Whether to call `preventDefault()` on events.
+    ///
+    /// GSAP equivalent: `preventDefault`. Default is false.
+    pub prevent_default: bool,
+
+    /// Whether to allow click events to pass through.
+    ///
+    /// If true, small movements (below tolerance) are treated as clicks.
+    /// GSAP equivalent: `allowClicks`. Default is true.
+    pub allow_clicks: bool,
+
+    /// Event capture phase. If true, uses capture phase instead of bubbling.
+    ///
+    /// GSAP equivalent: `capture`. Default is false.
+    pub capture: bool,
+
+    /// Whether to handle touch events on touch devices.
+    ///
+    /// Default is true.
+    pub touch_enabled: bool,
+
+    /// Lock axis to horizontal or vertical only.
+    ///
+    /// - `None` - no axis lock (default)
+    /// - `Some(true)` - lock to horizontal (x-axis)
+    /// - `Some(false)` - lock to vertical (y-axis)
+    pub lock_axis: Option<bool>,
+}
+
+impl Default for ObserverOptions {
+    fn default() -> Self {
+        Self {
+            tolerance: 0.0,
+            prevent_default: false,
+            allow_clicks: true,
+            capture: false,
+            touch_enabled: true,
+            lock_axis: None,
+        }
+    }
+}
+
+impl ObserverOptions {
+    /// Create new options with default values.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Set the movement tolerance in pixels.
+    pub fn tolerance(mut self, pixels: f32) -> Self {
+        self.tolerance = pixels;
+        self
+    }
+
+    /// Set whether to prevent default browser behavior.
+    pub fn prevent_default(mut self, prevent: bool) -> Self {
+        self.prevent_default = prevent;
+        self
+    }
+
+    /// Set whether to allow click events.
+    pub fn allow_clicks(mut self, allow: bool) -> Self {
+        self.allow_clicks = allow;
+        self
+    }
+
+    /// Set whether to use capture phase.
+    pub fn capture(mut self, capture: bool) -> Self {
+        self.capture = capture;
+        self
+    }
+
+    /// Enable or disable touch handling.
+    pub fn touch_enabled(mut self, enabled: bool) -> Self {
+        self.touch_enabled = enabled;
+        self
+    }
+
+    /// Lock movement to horizontal axis only.
+    pub fn lock_horizontal(mut self) -> Self {
+        self.lock_axis = Some(true);
+        self
+    }
+
+    /// Lock movement to vertical axis only.
+    pub fn lock_vertical(mut self) -> Self {
+        self.lock_axis = Some(false);
+        self
+    }
+}
+
 impl core::fmt::Debug for ObserverCallbacks {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("ObserverCallbacks")
@@ -87,6 +188,29 @@ impl Observer {
     /// `MouseEvent` + `TouchEvent`. The closures are kept alive inside
     /// the returned `Observer`; drop it or call [`unbind`](Self::unbind) to remove them.
     pub fn bind(element: &Element, callbacks: ObserverCallbacks) -> Self {
+        Self::bind_with_options(element, callbacks, ObserverOptions::default())
+    }
+
+    /// Bind event listeners with custom options.
+    ///
+    /// GSAP equivalent: `Observer.create({ tolerance, preventDefault, ... })`
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let observer = Observer::bind_with_options(
+    ///     &element,
+    ///     callbacks,
+    ///     ObserverOptions::new()
+    ///         .tolerance(10.0)
+    ///         .prevent_default(true),
+    /// );
+    /// ```
+    pub fn bind_with_options(
+        element: &Element,
+        callbacks: ObserverCallbacks,
+        options: ObserverOptions,
+    ) -> Self {
         use std::cell::RefCell;
         use std::rc::Rc;
 
@@ -98,13 +222,26 @@ impl Observer {
         let on_release = Rc::new(RefCell::new(callbacks.on_release));
         let on_wheel = Rc::new(RefCell::new(callbacks.on_wheel));
 
+        // Track initial position for tolerance checking
+        let start_pos: Rc<RefCell<Option<(f32, f32)>>> = Rc::new(RefCell::new(None));
+        let tolerance = options.tolerance;
+        let prevent_default = options.prevent_default;
+        let lock_axis = options.lock_axis;
+
         // --- Pointer events ---
         {
             let cb = on_press.clone();
+            let start = start_pos.clone();
+            let prevent = prevent_default;
             let closure = Closure::wrap(Box::new(move |e: Event| {
+                if prevent {
+                    e.prevent_default();
+                }
                 if let Ok(pe) = e.dyn_into::<web_sys::PointerEvent>() {
+                    let data = pointer_data_from_pointer(&pe);
+                    *start.borrow_mut() = Some((data.x, data.y));
                     if let Some(ref mut f) = *cb.borrow_mut() {
-                        f(pointer_data_from_pointer(&pe));
+                        f(data);
                     }
                 }
             }) as Box<dyn FnMut(Event)>);
@@ -114,10 +251,40 @@ impl Observer {
 
         {
             let cb = on_move.clone();
+            let start = start_pos.clone();
+            let prevent = prevent_default;
             let closure = Closure::wrap(Box::new(move |e: Event| {
+                if prevent {
+                    e.prevent_default();
+                }
                 if let Ok(pe) = e.dyn_into::<web_sys::PointerEvent>() {
+                    let mut data = pointer_data_from_pointer(&pe);
+
+                    // Apply tolerance check
+                    if tolerance > 0.0 {
+                        if let Some((sx, sy)) = *start.borrow() {
+                            let dx = data.x - sx;
+                            let dy = data.y - sy;
+                            let dist = (dx * dx + dy * dy).sqrt();
+                            if dist < tolerance {
+                                return; // Below tolerance, don't fire callback
+                            }
+                        }
+                    }
+
+                    // Apply axis lock
+                    if let Some(horizontal) = lock_axis {
+                        if let Some((sx, sy)) = *start.borrow() {
+                            if horizontal {
+                                data.y = sy; // Lock Y
+                            } else {
+                                data.x = sx; // Lock X
+                            }
+                        }
+                    }
+
                     if let Some(ref mut f) = *cb.borrow_mut() {
-                        f(pointer_data_from_pointer(&pe));
+                        f(data);
                     }
                 }
             }) as Box<dyn FnMut(Event)>);
@@ -127,8 +294,14 @@ impl Observer {
 
         {
             let cb = on_release.clone();
+            let start = start_pos.clone();
+            let prevent = prevent_default;
             let closure = Closure::wrap(Box::new(move |e: Event| {
+                if prevent {
+                    e.prevent_default();
+                }
                 if let Ok(pe) = e.dyn_into::<web_sys::PointerEvent>() {
+                    *start.borrow_mut() = None;
                     if let Some(ref mut f) = *cb.borrow_mut() {
                         f(pointer_data_from_pointer(&pe));
                     }
@@ -141,7 +314,11 @@ impl Observer {
         // --- Wheel ---
         {
             let cb = on_wheel;
+            let prevent = prevent_default;
             let closure = Closure::wrap(Box::new(move |e: Event| {
+                if prevent {
+                    e.prevent_default();
+                }
                 if let Ok(we) = e.dyn_into::<web_sys::WheelEvent>() {
                     if let Some(ref mut f) = *cb.borrow_mut() {
                         f(we.delta_x() as f32, we.delta_y() as f32);
