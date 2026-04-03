@@ -39,6 +39,10 @@
 //! ```
 
 #[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
+#[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
 
 use crate::traits::Interpolate;

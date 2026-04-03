@@ -20,6 +20,12 @@ use crate::timeline::{Timeline, stagger};
 use crate::traits::Animatable;
 use crate::tween::Tween;
 
+#[cfg(not(feature = "std"))]
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
+
 /// Configuration options for [`SplitText`].
 ///
 /// GSAP equivalent: SplitText options like `wordDelimiter`, `charsClass`, etc.

@@ -27,6 +27,7 @@
 //! });
 //! ```
 
+#![allow(clippy::type_complexity)]
 use wasm_bindgen::prelude::*;
 
 use crate::driver::AnimationDriver;
@@ -112,7 +113,7 @@ impl RafDriver {
         self.last_timestamp = Some(timestamp_ms);
 
         // Cap dt to avoid huge jumps after tab switch (> 500ms → clamp)
-        let dt = dt.max(0.0).min(0.5) * self.time_scale;
+        let dt = dt.clamp(0.0, 0.5) * self.time_scale;
         self.inner.tick(dt);
     }
 

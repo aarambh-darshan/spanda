@@ -537,7 +537,7 @@ pub fn parse_named(name: &str) -> Result<Srgba, ParseColorError> {
         "crimson" => Ok(Srgba::new(0.8627451, 0.078431375, 0.23529412, 1.0)),
         "tomato" => Ok(Srgba::new(1.0, 0.3882353, 0.2784314, 1.0)),
         "salmon" => Ok(Srgba::new(0.98039216, 0.5019608, 0.44705883, 1.0)),
-        "turquoise" => Ok(Srgba::new(0.2509804, 0.87843138, 0.8156863, 1.0)),
+        "turquoise" => Ok(Srgba::new(0.2509804, 0.878_431_4, 0.8156863, 1.0)),
         "skyblue" => Ok(Srgba::new(0.5294118, 0.80784315, 0.92156863, 1.0)),
         "steelblue" => Ok(Srgba::new(0.27450982, 0.50980395, 0.7058824, 1.0)),
         "slategray" | "slategrey" => Ok(Srgba::new(0.4392157, 0.5019608, 0.5647059, 1.0)),

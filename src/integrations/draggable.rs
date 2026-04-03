@@ -5,6 +5,7 @@
 //! this module provides the DOM binding.
 //!
 //! Requires the `wasm-dom` feature.
+#![allow(clippy::type_complexity)]
 
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;

@@ -40,6 +40,10 @@
 //! assert!((pos[1] - 200.0).abs() < 1.0);
 //! ```
 
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
 use crate::traits::Update;
 
 #[cfg(not(feature = "std"))]

@@ -5,6 +5,7 @@
 //! [`PointerData`](crate::drag::PointerData) struct.
 //!
 //! Requires the `wasm-dom` feature.
+#![allow(clippy::type_complexity)]
 
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;

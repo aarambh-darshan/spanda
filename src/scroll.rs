@@ -35,6 +35,10 @@
 //! ```
 
 #[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
+#[cfg(not(feature = "std"))]
 use alloc::{boxed::Box, vec::Vec};
 
 use crate::clock::Clock;
@@ -152,6 +156,7 @@ pub struct ScrollDriver {
     /// Previous progress for direction/enter/leave detection.
     prev_progress: f32,
     /// Whether we're currently "inside" the scroll range.
+    #[allow(dead_code)]
     inside: bool,
     /// Scroll snap points (progress values to snap to).
     snap_points: Vec<f32>,
@@ -267,6 +272,7 @@ impl ScrollDriver {
 
         let new_progress = self.clock.progress();
         let old_progress = self.prev_progress;
+        #[allow(unused_variables)]
         let going_forward = new_progress > old_progress;
 
         // Check for enter/leave callbacks

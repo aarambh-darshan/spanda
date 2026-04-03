@@ -14,6 +14,10 @@
 //!  Update               — advance an animation by a delta-time step
 //! ```
 
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
 // ── Interpolate ──────────────────────────────────────────────────────────────
 
 /// Linear interpolation between two values.
@@ -66,6 +70,9 @@ pub trait Update {
     /// has completed (so a driver can clean it up automatically).
     fn update(&mut self, dt: f32) -> bool;
 }
+
+#[cfg(not(feature = "std"))]
+use alloc::boxed::Box;
 
 // Blanket impl for boxed updates
 impl<T: Update + ?Sized> Update for Box<T> {

@@ -38,6 +38,10 @@
 //! | `EaseInOutBounce`    | Bounce both ends — very expressive             |
 //! | `Custom(fn)`         | Your own curve                                 |
 
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
 use core::f32::consts::PI;
 
 #[cfg(not(feature = "std"))]

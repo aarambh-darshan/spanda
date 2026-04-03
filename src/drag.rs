@@ -22,6 +22,10 @@
 //! // inertia carries momentum from the drag
 //! ```
 
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
 use crate::inertia::{InertiaConfig, InertiaN};
 
 /// Unified pointer data — normalises mouse, touch, and pointer events.
@@ -233,6 +237,7 @@ impl DragState {
         // Calculate distance moved for click detection
         let dx = self.last_pointer[0] - self.start_pointer[0];
         let dy = self.last_pointer[1] - self.start_pointer[1];
+        #[allow(unused_variables)]
         let distance = (dx * dx + dy * dy).sqrt();
 
         // Apply snap on release if configured

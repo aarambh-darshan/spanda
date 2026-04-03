@@ -24,6 +24,10 @@
 //! assert!((t.value() - 100.0).abs() < 1e-6);
 //! ```
 
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
 use crate::easing::Easing;
 use crate::keyframe::Loop;
 use crate::traits::{Animatable, Update};

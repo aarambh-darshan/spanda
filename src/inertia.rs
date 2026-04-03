@@ -24,6 +24,13 @@
 //! ```
 
 use crate::spring::SpringAnimatable;
+#[cfg(not(feature = "std"))]
+use alloc::{vec, vec::Vec};
+
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
 use crate::traits::Update;
 
 /// Configuration for inertia deceleration.
@@ -205,7 +212,7 @@ impl<T: SpringAnimatable> InertiaN<T> {
         self.settled = self
             .velocities
             .iter()
-            .all(|v| v.abs() < self.config.epsilon);
+            .all(|&v: &f32| v.abs() < self.config.epsilon);
         self
     }
 

@@ -26,10 +26,14 @@
 //! }
 //! ```
 
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
 use crate::drag::PointerData;
 
 #[cfg(not(feature = "std"))]
-use alloc::{boxed::Box, vec, vec::Vec};
+use alloc::vec::Vec;
 
 /// Recognised gesture types.
 #[derive(Debug, Clone, PartialEq)]

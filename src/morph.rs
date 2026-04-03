@@ -27,6 +27,13 @@
 //! assert_eq!(points.len(), 3);
 //! ```
 
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
+#[cfg(not(feature = "std"))]
+use alloc::{vec, vec::Vec};
+
 use crate::easing::Easing;
 use crate::traits::Update;
 
