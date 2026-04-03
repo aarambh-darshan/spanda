@@ -1,3 +1,4 @@
+#![cfg(feature = "palette")]
 //! Integration tests for colour interpolation (requires `palette` feature).
 
 use palette::Srgba;

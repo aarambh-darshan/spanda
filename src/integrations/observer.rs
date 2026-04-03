@@ -163,6 +163,7 @@ fn pointer_data_from_pointer(e: &web_sys::PointerEvent) -> PointerData {
     }
 }
 
+#[allow(dead_code)]
 fn pointer_data_from_mouse(e: &web_sys::MouseEvent) -> PointerData {
     PointerData {
         x: e.client_x() as f32,
@@ -172,6 +173,7 @@ fn pointer_data_from_mouse(e: &web_sys::MouseEvent) -> PointerData {
     }
 }
 
+#[allow(dead_code)]
 fn pointer_data_from_touch(t: &web_sys::Touch) -> PointerData {
     PointerData {
         x: t.client_x() as f32,

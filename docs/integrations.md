@@ -169,7 +169,7 @@ fn setup(mut commands: Commands) {
     ));
 }
 
-fn listen(mut events: EventReader<TweenCompleted>) {
+fn listen(mut events: MessageReader<TweenCompleted>) {
     for event in events.read() {
         println!("Entity {:?} finished its tween!", event.entity);
     }

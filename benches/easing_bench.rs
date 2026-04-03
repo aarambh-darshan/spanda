@@ -40,7 +40,7 @@ fn bench_easings(c: &mut Criterion) {
     c.bench_function("all_named_sweep", |b| {
         let variants = Easing::all_named();
         b.iter(|| {
-            for easing in variants {
+            for easing in &variants {
                 let _ = easing.apply(black_box(0.5));
             }
         })

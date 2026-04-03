@@ -245,7 +245,7 @@ impl Update for FlipAnimation {
             }
         }
 
-        let was_complete = self.is_complete();
+        let _was_complete = self.is_complete();
 
         let a = self.translate_x.update(dt);
         let b = self.translate_y.update(dt);
@@ -256,7 +256,7 @@ impl Update for FlipAnimation {
 
         // Fire callbacks on completion
         #[cfg(all(feature = "std", not(feature = "bevy")))]
-        if !was_complete && self.is_complete() {
+        if !_was_complete && self.is_complete() {
             if let Some(ref mut cb) = self.on_leave_cb {
                 cb();
             }

@@ -11,8 +11,8 @@
 //! // This example requires the bevy feature and bevy dependency.
 //! // Add to your Cargo.toml:
 //! // [dependencies]
-//! // bevy = "0.13"
-//! // spanda = { version = "0.6", features = ["bevy"] }
+//! // bevy = "0.18"
+//! // spanda = { version = "0.9.2", features = ["bevy"] }
 //!
 //! use bevy::prelude::*;
 //! use spanda::integrations::bevy::{SpandaPlugin, TweenCompleted, SpringSettled};
@@ -76,13 +76,13 @@
 //!     }
 //! }
 //!
-//! fn listen_tween_complete(mut events: EventReader<TweenCompleted>) {
+//! fn listen_tween_complete(mut events: MessageReader<TweenCompleted>) {
 //!     for ev in events.read() {
 //!         println!("Tween completed on entity {:?}", ev.entity);
 //!     }
 //! }
 //!
-//! fn listen_spring_settled(mut events: EventReader<SpringSettled>) {
+//! fn listen_spring_settled(mut events: MessageReader<SpringSettled>) {
 //!     for ev in events.read() {
 //!         println!("Spring settled on entity {:?}", ev.entity);
 //!     }

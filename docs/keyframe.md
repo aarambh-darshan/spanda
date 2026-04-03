@@ -37,7 +37,8 @@ let mut track = KeyframeTrack::new()
 
 // In your render loop:
 let is_running = track.update(0.016);
-let current = track.value();  // current interpolated value
+// Output current position (since we pushed frames, it will be Some)
+let current = track.value().unwrap();  // current interpolated value
 ```
 
 ### Direct Time Lookup
@@ -133,8 +134,8 @@ let track = KeyframeTrack::new()
 | `push(time, value)` | Add a keyframe with linear easing to next |
 | `push_with_easing(time, value, easing)` | Add a keyframe with specific easing |
 | `looping(mode)` | Set loop mode: `Once`, `Forever`, `PingPong`, `Times(n)` |
-| `value()` | Current value based on internal elapsed time |
-| `value_at(t)` | Pure evaluation at arbitrary time `t` |
+| `value()` | Current value based on internal elapsed time (`Option<T>`) |
+| `value_at(t)` | Value at specific absolute time (`Option<T>`) |
 | `duration()` | Total duration (time of last keyframe) |
 | `is_complete()` | Whether the track has finished playing |
 | `reset()` | Reset elapsed time, loop count, and completion state |

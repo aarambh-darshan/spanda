@@ -5,7 +5,6 @@
 
 use spanda::morph::MorphPath;
 use spanda::easing::Easing;
-use spanda::traits::Update;
 
 fn main() {
     println!("=== spanda MorphPath Demo ===\n");

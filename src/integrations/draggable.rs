@@ -23,6 +23,7 @@ pub struct Draggable {
     state: Rc<RefCell<DragState>>,
     element: Element,
     closures: Vec<(String, Closure<dyn FnMut(Event)>)>,
+    #[allow(dead_code)]
     last_time: Rc<RefCell<f64>>,
 }
 
@@ -101,10 +102,7 @@ impl Draggable {
         }
     }
 
-    /// Get a snapshot of the current drag state.
-    pub fn state(&self) -> DragState {
-        self.state.borrow().clone()
-    }
+
 
     /// Current position.
     pub fn position(&self) -> [f32; 2] {

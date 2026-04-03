@@ -222,7 +222,7 @@ impl GpuAnimationBatch {
         self.tween_data.push(data);
         self.results.push(tween.start);
 
-        if let BatchBackend::Cpu { ref mut tweens } = self.backend {
+        if let BatchBackend::Cpu { tweens } = &mut self.backend {
             tweens.push(tween);
         }
 
@@ -316,7 +316,7 @@ impl GpuAnimationBatch {
                     readback_buffer.unmap();
                 }
             }
-            BatchBackend::Cpu { ref mut tweens } => {
+            BatchBackend::Cpu { tweens } => {
                 self.results.clear();
                 for tween in tweens.iter_mut() {
                     tween.update(dt);
@@ -346,7 +346,7 @@ impl GpuAnimationBatch {
         self.tween_data.clear();
         self.results.clear();
         self.elapsed = 0.0;
-        if let BatchBackend::Cpu { ref mut tweens } = self.backend {
+        if let BatchBackend::Cpu { tweens } = &mut self.backend {
             tweens.clear();
         }
     }

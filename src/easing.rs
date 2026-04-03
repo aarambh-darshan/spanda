@@ -40,6 +40,9 @@
 
 use core::f32::consts::PI;
 
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
@@ -335,7 +338,9 @@ impl core::fmt::Debug for Easing {
 impl PartialEq for Easing {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Self::Custom(a), Self::Custom(b)) => (*a as usize) == (*b as usize),
+            // Function pointer identity comparison is unreliable across
+            // compilation units, so Custom variants are never equal to each other.
+            (Self::Custom(_), Self::Custom(_)) => false,
             (Self::CubicBezier(x1, y1, x2, y2), Self::CubicBezier(a1, b1, a2, b2)) => {
                 x1 == a1 && y1 == b1 && x2 == a2 && y2 == b2
             }
@@ -406,9 +411,11 @@ impl Easing {
         }
     }
 
-    /// All named (non-Custom) variants — useful for building picker UIs or
-    /// running benchmark sweeps.
-    pub fn all_named() -> &'static [Easing] {
+    /// All 31 classic (non-parameterized) easing variants.
+    ///
+    /// Excludes `Custom`, `CubicBezier`, `Steps`, and advanced parameterized
+    /// easings. Useful for building picker UIs or running benchmark sweeps.
+    pub fn all_classic() -> &'static [Easing] {
         &[
             Self::Linear,
             Self::EaseInQuad,     Self::EaseOutQuad,     Self::EaseInOutQuad,
@@ -422,6 +429,24 @@ impl Easing {
             Self::EaseInElastic,  Self::EaseOutElastic,  Self::EaseInOutElastic,
             Self::EaseInBounce,   Self::EaseOutBounce,   Self::EaseInOutBounce,
         ]
+    }
+
+    /// All named (non-Custom) variants including parameterized easings with
+    /// representative default parameters.
+    ///
+    /// Useful for exhaustive testing. For UI pickers, prefer [`all_classic()`].
+    pub fn all_named() -> Vec<Easing> {
+        let mut v: Vec<Easing> = Self::all_classic().to_vec();
+        v.extend_from_slice(&[
+            Self::CubicBezier(0.25, 0.1, 0.25, 1.0),
+            Self::Steps(4),
+            Self::RoughEase { strength: 0.5, points: 20, seed: 42 },
+            Self::SlowMo { ratio: 0.7, power: 0.7, yoyo_mode: false },
+            Self::ExpoScale { start_scale: 1.0, end_scale: 10.0 },
+            Self::Wiggle { frequency: 3.0, amplitude: 0.3 },
+            Self::CustomBounce { strength: 0.5, squash: 0.0 },
+        ]);
+        v
     }
 }
 

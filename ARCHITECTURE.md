@@ -1,4 +1,4 @@
-# spanda — Full Project Architecture & Build Guide
+# spanda — Full Project Architecture
 
 > *Sanskrit: स्पन्द — vibration, pulse, the throb of motion.*
 >
@@ -35,8 +35,7 @@
 10. [Testing Strategy](#10-testing-strategy)
 11. [Performance Considerations](#11-performance-considerations)
 12. [Publishing Checklist (crates.io)](#12-publishing-checklist-cratesio)
-13. [Suggested Build Order](#13-suggested-build-order)
-14. [Naming Conventions](#14-naming-conventions)
+13. [Naming Conventions](#14-naming-conventions)
 
 ---
 
@@ -129,8 +128,6 @@ spanda/
 
 ### 3.1 `traits.rs`
 
-**Status: complete** (already written)
-
 This is the foundation.  Nothing in the crate can be built without these traits.
 
 #### Traits defined
@@ -174,8 +171,6 @@ pub trait Update {
 
 ### 3.2 `easing.rs`
 
-**Status: complete** (already written)
-
 36 easing functions (31 classic + CubicBezier + Steps + 5 advanced parameterized) exposed both as:
 - `Easing` enum with `.apply(t: f32) -> f32` — pass-around, storable, optionally serialisable
 - Free `pub fn ease_out_cubic(t: f32) -> f32` — zero-overhead direct calls
@@ -207,8 +202,6 @@ pub trait Update {
 ---
 
 ### 3.3 `tween.rs`
-
-**Status: not yet written — build this second**
 
 A `Tween<T>` animates a single value from `start` to `end` over a `duration`
 in seconds, applying an easing curve.
@@ -294,8 +287,6 @@ pub fn value(&self) -> T {
 
 ### 3.4 `keyframe.rs`
 
-**Status: not yet written — build this third**
-
 A `KeyframeTrack<T>` holds a series of `(time, value)` pairs and a per-segment
 easing.  At any time `t`, it interpolates between the two surrounding keyframes.
 
@@ -363,8 +354,6 @@ else:
 ---
 
 ### 3.5 `timeline.rs`
-
-**Status: not yet written — build this fourth**
 
 A `Timeline` is a collection of labelled animations that play concurrently or
 in sequence, with per-entry delays.  Think of it as a mini animation mixer.
@@ -460,8 +449,6 @@ Internally uses a `tokio::sync::watch::Sender<TimelineState>`.
 
 ### 3.6 `spring.rs`
 
-**Status: not yet written — build this fifth**
-
 Physics-based animation using a damped harmonic oscillator.  Unlike easing
 functions, a spring has no fixed duration — it settles when velocity and
 displacement are below a threshold.
@@ -546,8 +533,6 @@ pub struct SpringN<T: Animatable> {
 
 ### 3.7 `driver.rs`
 
-**Status: not yet written — build this sixth**
-
 The `AnimationDriver` owns a collection of active animations and ticks them
 all on each frame.  It handles cleanup of completed animations automatically.
 
@@ -594,8 +579,6 @@ pub struct AnimationDriverArc(Arc<Mutex<AnimationDriver>>);
 
 ### 3.8 `clock.rs`
 
-**Status: not yet written — build with driver**
-
 The `Clock` trait decouples the animation system from wall time, making the
 entire crate deterministically testable.
 
@@ -637,8 +620,6 @@ impl MockClock {
 
 ### 3.9 `lib.rs`
 
-**Status: complete** (already written)
-
 The crate root re-exports everything the user needs:
 
 ```rust
@@ -675,7 +656,7 @@ repository  = "https://github.com/aarambh-darshan/spanda"
 keywords    = ["animation", "tween", "easing", "keyframe", "gamedev"]
 categories  = ["game-development", "graphics", "mathematics", "multimedia"]
 readme      = "README.md"
-rust-version = "1.70"
+rust-version = "1.85"
 
 [features]
 default  = ["std"]
@@ -690,9 +671,9 @@ gpu      = ["dep:wgpu", "dep:pollster", "dep:bytemuck", "dep:bytemuck_derive", "
 
 [dependencies]
 serde        = { version = "1",    features = ["derive"], optional = true }
-bevy_app     = { version = "0.13", optional = true }
-bevy_ecs     = { version = "0.13", optional = true }
-bevy_time    = { version = "0.13", optional = true }
+bevy_app     = { version = "0.18.1", optional = true }
+bevy_ecs     = { version = "0.18.1", optional = true }
+bevy_time    = { version = "0.18.1", optional = true }
 wasm-bindgen = { version = "0.2",  optional = true }
 js-sys       = { version = "0.3",  optional = true }
 palette      = { version = "0.7",  optional = true }
@@ -1184,63 +1165,8 @@ Before running `cargo publish`:
 
 ---
 
-## 13. Suggested Build Order
 
-Build in this exact order — each step depends only on what came before.
-
-```
-Step 1  ──  traits.rs          DONE ✓
-            Easing enum + pure fns
-
-Step 2  ──  easing.rs          DONE ✓
-            Blanket Interpolate impls
-
-Step 3  ──  tween.rs
-            Tween<T> struct, TweenBuilder, Update impl
-            → First usable animation!
-
-Step 4  ──  clock.rs
-            Clock trait, WallClock, MockClock
-            → Makes tween testable against real time
-
-Step 5  ──  driver.rs
-            AnimationDriver, AnimationId
-            → Manage multiple tweens at once
-
-Step 6  ──  keyframe.rs
-            Keyframe<T>, KeyframeTrack<T>, Loop enum
-            → Multi-step animations
-
-Step 7  ──  timeline.rs
-            Timeline, Sequence
-            → Compose everything together
-
-Step 8  ──  spring.rs
-            Spring, SpringConfig, presets
-            → Physics-based motion
-
-Step 9  ──  integrations/bevy.rs
-            SpandaPlugin, Component impls
-            → Bevy users
-
-Step 10 ──  integrations/wasm.rs
-            RafDriver, wasm-bindgen wiring
-            → Web users
-
-Step 11 ──  examples/
-            TUI demos, Bevy demo, WASM demo
-            → Proof it works + YouTube content
-
-Step 12 ──  benches/
-            Criterion benchmarks
-            → Performance story for blog post
-
-Step 13 ──  Publish 0.1.0
-```
-
----
-
-## 14. Naming Conventions
+## 13. Naming Conventions
 
 ### Crate name
 

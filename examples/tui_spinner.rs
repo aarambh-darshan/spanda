@@ -33,7 +33,7 @@ fn main() {
         let dt = clock.delta();
         track.update(dt);
 
-        let idx = (track.value() as usize).min(frames.len() - 1);
+        let idx = (track.value().unwrap() as usize).min(frames.len() - 1);
         print!("\r  {} Loading...", frames[idx]);
 
         std::thread::sleep(std::time::Duration::from_millis(16));

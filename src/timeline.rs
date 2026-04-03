@@ -174,6 +174,9 @@ impl Timeline {
     }
 
     /// Add a labelled animation starting at `start_at` seconds.
+    ///
+    /// The `duration` parameter specifies the animation's expected duration,
+    /// which is used by [`At::End`] and [`At::Offset`] for relative positioning.
     pub fn add<A: Update + 'static>(
         mut self,
         label: &str,
@@ -186,7 +189,32 @@ impl Timeline {
             label: label.to_string(),
             animation: Box::new(animation),
             start_at,
-            duration: 0.0, // filled in by the Sequence builder
+            duration: 0.0, // filled in by the Sequence builder or add_with_duration()
+            started: false,
+            completed: false,
+            kind: EntryKind::Animation,
+            #[cfg(feature = "std")]
+            callback: None,
+        });
+        self
+    }
+
+    /// Add a labelled animation with explicit duration for correct relative positioning.
+    ///
+    /// Use this instead of [`Timeline::add`] when you need [`At::End`] or
+    /// [`At::Offset`] to reference this entry's duration.
+    pub fn add_with_duration<A: Update + 'static>(
+        mut self,
+        label: &str,
+        animation: A,
+        start_at: f32,
+        duration: f32,
+    ) -> Self {
+        self.entries.push(TimelineEntry {
+            label: label.to_string(),
+            animation: Box::new(animation),
+            start_at,
+            duration,
             started: false,
             completed: false,
             kind: EntryKind::Animation,
