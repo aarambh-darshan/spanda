@@ -47,7 +47,7 @@ use num_traits::Float as _;
 use crate::traits::Update;
 
 #[cfg(not(feature = "std"))]
-use alloc::{vec, vec::Vec};
+use alloc::{format, vec, vec::Vec};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -526,6 +526,8 @@ impl SpringAnimatable for [f32; 4] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(feature = "std"))]
+    use alloc::{format, vec, vec::Vec, string::String};
 
     // ── Spring (f32) tests ───────────────────────────────────────────────
 

@@ -30,7 +30,7 @@
 use num_traits::Float as _;
 
 #[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
+use alloc::vec::{self, Vec};
 
 // ── PathEvaluate2D ──────────────────────────────────────────────────────────
 
@@ -234,6 +234,8 @@ pub fn tangent_angle_deg(tangent: [f32; 2]) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(feature = "std"))]
+    use alloc::{format, vec, vec::Vec, string::String};
 
     #[test]
     fn catmull_rom_endpoints() {

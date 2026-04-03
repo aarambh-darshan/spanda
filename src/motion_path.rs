@@ -30,7 +30,7 @@
 use num_traits::Float as _;
 
 #[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
+use alloc::vec::{self, Vec};
 
 use crate::bezier::{CatmullRomSpline, PathEvaluate2D, tangent_angle};
 
@@ -687,6 +687,8 @@ impl core::fmt::Debug for CompoundPath {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(feature = "std"))]
+    use alloc::{format, vec, vec::Vec, string::String};
 
     // ── PolyPath tests ─────────────────────────────────────────────────────
 
