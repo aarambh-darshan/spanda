@@ -2,7 +2,7 @@
 //! Integration tests for colour interpolation (requires `palette` feature).
 
 use palette::Srgba;
-use spanda::colour::{lerp_in_lab, lerp_in_oklch, InLab, InLinear, InOklch};
+use spanda::colour::{InLab, InLinear, InOklch, lerp_in_lab, lerp_in_oklch};
 use spanda::spring::{SpringConfig, SpringN};
 use spanda::traits::{Interpolate, Update};
 use spanda::tween::Tween;

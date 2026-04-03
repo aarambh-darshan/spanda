@@ -46,10 +46,7 @@ fn sequence_completes_in_order() {
     }
 
     // Total expected: 0.5 + 0.1 + 0.3 + 0.05 + 0.4 = 1.35s
-    assert!(
-        total >= 1.3 && total <= 1.5,
-        "Expected ~1.35s, got {total}"
-    );
+    assert!(total >= 1.3 && total <= 1.5, "Expected ~1.35s, got {total}");
 }
 
 #[test]
@@ -57,21 +54,13 @@ fn concurrent_timeline_completes() {
     use spanda::timeline::Timeline;
 
     let mut timeline = Timeline::new()
-        .add(
-            "fade",
-            Tween::new(0.0_f32, 1.0).duration(0.5).build(),
-            0.0,
-        )
+        .add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0)
         .add(
             "slide",
             Tween::new(0.0_f32, 100.0).duration(0.8).build(),
             0.0,
         )
-        .add(
-            "scale",
-            Tween::new(0.5_f32, 1.0).duration(0.3).build(),
-            0.4,
-        );
+        .add("scale", Tween::new(0.5_f32, 1.0).duration(0.3).build(), 0.4);
 
     timeline.play();
 
@@ -86,8 +75,5 @@ fn concurrent_timeline_completes() {
     }
 
     // Should complete when the longest entry finishes: slide at 0.8s
-    assert!(
-        total >= 0.7 && total <= 0.9,
-        "Expected ~0.8s, got {total}"
-    );
+    assert!(total >= 0.7 && total <= 0.9, "Expected ~0.8s, got {total}");
 }

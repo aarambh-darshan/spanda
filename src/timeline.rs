@@ -177,12 +177,7 @@ impl Timeline {
     ///
     /// The `duration` parameter specifies the animation's expected duration,
     /// which is used by [`At::End`] and [`At::Offset`] for relative positioning.
-    pub fn add<A: Update + 'static>(
-        mut self,
-        label: &str,
-        animation: A,
-        start_at: f32,
-    ) -> Self {
+    pub fn add<A: Update + 'static>(mut self, label: &str, animation: A, start_at: f32) -> Self {
         // We estimate duration by the animation — for tweens we can't directly
         // read it here because the trait is erased, so the caller can set it.
         self.entries.push(TimelineEntry {
@@ -714,10 +709,7 @@ impl core::fmt::Debug for Sequence {
 /// timeline.play();
 /// // Animations start at t=0.0, 0.1, 0.2, 0.3, 0.4
 /// ```
-pub fn stagger<A: Update + 'static>(
-    animations: Vec<(A, f32)>,
-    stagger_delay: f32,
-) -> Timeline {
+pub fn stagger<A: Update + 'static>(animations: Vec<(A, f32)>, stagger_delay: f32) -> Timeline {
     let mut timeline = Timeline {
         entries: Vec::new(),
         elapsed: 0.0,
@@ -756,8 +748,7 @@ mod tests {
 
     #[test]
     fn timeline_plays_to_completion() {
-        let mut tl = Timeline::new()
-            .add("t1", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+        let mut tl = Timeline::new().add("t1", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
         tl.play();
 
         assert!(tl.update(0.3));
@@ -795,8 +786,7 @@ mod tests {
 
     #[test]
     fn timeline_pause_and_resume() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
         tl.play();
 
         tl.update(0.3);
@@ -812,8 +802,7 @@ mod tests {
 
     #[test]
     fn timeline_reset() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
         tl.play();
         tl.update(0.5);
         assert_eq!(*tl.state(), TimelineState::Completed);
@@ -850,14 +839,13 @@ mod tests {
     #[cfg(feature = "std")]
     #[test]
     fn on_finish_callback_fires() {
-        use std::sync::atomic::{AtomicBool, Ordering};
         use std::sync::Arc;
+        use std::sync::atomic::{AtomicBool, Ordering};
 
         let fired = Arc::new(AtomicBool::new(false));
         let fired_clone = fired.clone();
 
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
         tl.on_finish(move || {
             fired_clone.store(true, Ordering::SeqCst);
         });
@@ -871,8 +859,7 @@ mod tests {
 
     #[test]
     fn timeline_time_scale_double_speed() {
-        let mut tl = Timeline::new()
-            .add("t1", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+        let mut tl = Timeline::new().add("t1", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
         tl.set_time_scale(2.0);
         tl.play();
         assert!(!tl.update(0.5)); // effective dt = 1.0, should complete
@@ -881,8 +868,7 @@ mod tests {
 
     #[test]
     fn timeline_time_scale_half_speed() {
-        let mut tl = Timeline::new()
-            .add("t1", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+        let mut tl = Timeline::new().add("t1", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
         tl.set_time_scale(0.5);
         tl.play();
         tl.update(1.0); // effective dt = 0.5
@@ -893,9 +879,9 @@ mod tests {
 
     #[test]
     fn stagger_creates_offset_timeline() {
-        let tweens: Vec<_> = (0..3).map(|_| {
-            (Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5)
-        }).collect();
+        let tweens: Vec<_> = (0..3)
+            .map(|_| (Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5))
+            .collect();
 
         let mut tl = stagger(tweens, 0.2);
         tl.play();
@@ -908,9 +894,14 @@ mod tests {
         let mut total = 0.2;
         while tl.update(0.01) {
             total += 0.01;
-            if total > 5.0 { panic!("Stagger timeline didn't complete"); }
+            if total > 5.0 {
+                panic!("Stagger timeline didn't complete");
+            }
         }
-        assert!(total >= 0.6 && total <= 1.0, "Expected ~0.7-0.9s, got {total}");
+        assert!(
+            total >= 0.6 && total <= 1.0,
+            "Expected ~0.7-0.9s, got {total}"
+        );
     }
 
     #[test]
@@ -923,10 +914,14 @@ mod tests {
 
     #[test]
     fn at_start_places_at_zero() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5);
 
-        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Start);
+        tl.add_at(
+            "b",
+            Tween::new(0.0_f32, 1.0).duration(0.3).build(),
+            0.3,
+            At::Start,
+        );
 
         // Entry "b" should start at 0.0
         assert!(
@@ -938,12 +933,16 @@ mod tests {
 
     #[test]
     fn at_end_places_after_last() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
         // Give entry "a" a known duration for At::End to work
         tl.entries[0].duration = 0.5;
 
-        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::End);
+        tl.add_at(
+            "b",
+            Tween::new(0.0_f32, 1.0).duration(0.3).build(),
+            0.3,
+            At::End,
+        );
 
         // Entry "b" should start at 0.5 (end of "a")
         assert!(
@@ -955,8 +954,8 @@ mod tests {
 
     #[test]
     fn at_label_places_at_same_time() {
-        let mut tl = Timeline::new()
-            .add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.3);
+        let mut tl =
+            Timeline::new().add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.3);
 
         tl.add_at(
             "scale",
@@ -975,11 +974,15 @@ mod tests {
 
     #[test]
     fn at_offset_places_relative_to_previous() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
         tl.entries[0].duration = 0.5;
 
-        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Offset(0.2));
+        tl.add_at(
+            "b",
+            Tween::new(0.0_f32, 1.0).duration(0.3).build(),
+            0.3,
+            At::Offset(0.2),
+        );
 
         // "b" should start at 0.0 + 0.5 + 0.2 = 0.7
         assert!(
@@ -991,11 +994,15 @@ mod tests {
 
     #[test]
     fn at_offset_negative_overlaps() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
         tl.entries[0].duration = 1.0;
 
-        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5, At::Offset(-0.3));
+        tl.add_at(
+            "b",
+            Tween::new(0.0_f32, 1.0).duration(0.5).build(),
+            0.5,
+            At::Offset(-0.3),
+        );
 
         // "b" should start at 0.0 + 1.0 - 0.3 = 0.7
         assert!(
@@ -1007,10 +1014,14 @@ mod tests {
 
     #[test]
     fn at_label_unknown_falls_back_to_zero() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5);
 
-        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Label("nonexistent"));
+        tl.add_at(
+            "b",
+            Tween::new(0.0_f32, 1.0).duration(0.3).build(),
+            0.3,
+            At::Label("nonexistent"),
+        );
 
         assert!(
             (tl.entries[1].start_at - 0.0).abs() < 1e-6,

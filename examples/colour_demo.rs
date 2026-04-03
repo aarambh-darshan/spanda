@@ -5,7 +5,7 @@
 //! Run with: `cargo run --example colour_demo --features palette`
 
 use palette::Srgba;
-use spanda::colour::{lerp_in_lab, lerp_in_oklch, lerp_in_linear};
+use spanda::colour::{lerp_in_lab, lerp_in_linear, lerp_in_oklch};
 use spanda::traits::Interpolate;
 
 fn srgba_to_ansi(c: Srgba) -> String {

@@ -202,7 +202,10 @@ impl<T: SpringAnimatable> InertiaN<T> {
     /// Set initial velocity decomposed into the same components as position.
     pub fn with_velocity(mut self, velocity: T) -> Self {
         self.velocities = velocity.to_components();
-        self.settled = self.velocities.iter().all(|v| v.abs() < self.config.epsilon);
+        self.settled = self
+            .velocities
+            .iter()
+            .all(|v| v.abs() < self.config.epsilon);
         self
     }
 
@@ -272,8 +275,7 @@ mod tests {
 
     #[test]
     fn inertia_decelerates_to_zero() {
-        let mut inertia = Inertia::new(InertiaConfig::default_flick())
-            .with_velocity(500.0);
+        let mut inertia = Inertia::new(InertiaConfig::default_flick()).with_velocity(500.0);
 
         for _ in 0..600 {
             if !inertia.update(1.0 / 60.0) {
@@ -286,8 +288,7 @@ mod tests {
 
     #[test]
     fn inertia_position_increases_for_positive_velocity() {
-        let mut inertia = Inertia::new(InertiaConfig::default_flick())
-            .with_velocity(100.0);
+        let mut inertia = Inertia::new(InertiaConfig::default_flick()).with_velocity(100.0);
 
         let prev_pos = inertia.position();
         inertia.update(1.0 / 60.0);
@@ -296,19 +297,19 @@ mod tests {
 
     #[test]
     fn inertia_zero_velocity_is_settled() {
-        let inertia = Inertia::new(InertiaConfig::default_flick())
-            .with_velocity(0.0);
+        let inertia = Inertia::new(InertiaConfig::default_flick()).with_velocity(0.0);
         assert!(inertia.is_settled());
     }
 
     #[test]
     fn inertia_kick_restarts() {
-        let mut inertia = Inertia::new(InertiaConfig::default_flick())
-            .with_velocity(100.0);
+        let mut inertia = Inertia::new(InertiaConfig::default_flick()).with_velocity(100.0);
 
         // Let it settle
         for _ in 0..600 {
-            if !inertia.update(1.0 / 60.0) { break; }
+            if !inertia.update(1.0 / 60.0) {
+                break;
+            }
         }
         assert!(inertia.is_settled());
 
@@ -330,13 +331,17 @@ mod tests {
         let mut snappy_frames = 0u32;
         for _ in 0..10000 {
             snappy_frames += 1;
-            if !snappy.update(1.0 / 60.0) { break; }
+            if !snappy.update(1.0 / 60.0) {
+                break;
+            }
         }
 
         let mut heavy_frames = 0u32;
         for _ in 0..10000 {
             heavy_frames += 1;
-            if !heavy.update(1.0 / 60.0) { break; }
+            if !heavy.update(1.0 / 60.0) {
+                break;
+            }
         }
 
         assert!(
@@ -351,7 +356,9 @@ mod tests {
             .with_velocity([300.0, -200.0]);
 
         for _ in 0..600 {
-            if !inertia.update(1.0 / 60.0) { break; }
+            if !inertia.update(1.0 / 60.0) {
+                break;
+            }
         }
         assert!(inertia.is_settled());
         let vel = inertia.velocity_components();
@@ -386,10 +393,8 @@ mod tests {
     fn inertia_frame_rate_independence() {
         // Two inertia instances: one ticked at 60fps, one at 120fps
         // should end up at roughly the same position
-        let mut a = Inertia::new(InertiaConfig::default_flick())
-            .with_velocity(500.0);
-        let mut b = Inertia::new(InertiaConfig::default_flick())
-            .with_velocity(500.0);
+        let mut a = Inertia::new(InertiaConfig::default_flick()).with_velocity(500.0);
+        let mut b = Inertia::new(InertiaConfig::default_flick()).with_velocity(500.0);
 
         // 1 second at 60 fps
         for _ in 0..60 {
@@ -404,7 +409,9 @@ mod tests {
         assert!(
             diff < 5.0,
             "Frame rate independence: 60fps pos={}, 120fps pos={}, diff={}",
-            a.position(), b.position(), diff
+            a.position(),
+            b.position(),
+            diff
         );
     }
 }

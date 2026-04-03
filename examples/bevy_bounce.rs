@@ -103,14 +103,17 @@ fn main() {
     println!("    - SpringSettled event when springs reach their target\n");
 
     // Demonstrate the Spring and SpringN APIs (no Bevy needed)
-    use spanda::spring::{Spring, SpringN, SpringConfig};
+    use spanda::spring::{Spring, SpringConfig, SpringN};
     use spanda::traits::Update;
 
     println!("  ── Spring (f32) ──\n");
     let mut spring = Spring::new(SpringConfig::wobbly()).with_position(0.0);
     spring.set_target(100.0);
 
-    println!("  {:>6}  {:>10}  {:>10}  {:>8}", "frame", "position", "velocity", "settled");
+    println!(
+        "  {:>6}  {:>10}  {:>10}  {:>8}",
+        "frame", "position", "velocity", "settled"
+    );
     for frame in 0..30 {
         spring.update(1.0 / 60.0);
         if frame % 3 == 0 {
@@ -128,14 +131,19 @@ fn main() {
     let mut spring2d = SpringN::new(SpringConfig::wobbly(), [0.0_f32, 0.0]);
     spring2d.set_target([100.0, 200.0]);
 
-    println!("  {:>6}  {:>10}  {:>10}  {:>8}", "frame", "x", "y", "settled");
+    println!(
+        "  {:>6}  {:>10}  {:>10}  {:>8}",
+        "frame", "x", "y", "settled"
+    );
     for frame in 0..60 {
         spring2d.update(1.0 / 60.0);
         if frame % 6 == 0 {
             let pos = spring2d.position();
             println!(
                 "  {:>6}  {:>10.2}  {:>10.2}  {:>8}",
-                frame, pos[0], pos[1],
+                frame,
+                pos[0],
+                pos[1],
                 spring2d.is_settled(),
             );
         }
@@ -150,6 +158,9 @@ fn main() {
     }
 
     let pos = spring3d.position();
-    println!("  Final 3D position: ({:.2}, {:.2}, {:.2})", pos[0], pos[1], pos[2]);
+    println!(
+        "  Final 3D position: ({:.2}, {:.2}, {:.2})",
+        pos[0], pos[1], pos[2]
+    );
     println!("  Settled: {}\n", spring3d.is_settled());
 }

@@ -48,13 +48,9 @@ fn main() {
     println!("  PolyPath with start/end offsets (0.25 - 0.75)");
     println!("  ══════════════════════════════════════════════\n");
 
-    let offset_path = PolyPath::from_points(vec![
-        [0.0, 0.0],
-        [100.0, 0.0],
-        [200.0, 0.0],
-    ])
-    .start_offset(0.25)
-    .end_offset(0.75);
+    let offset_path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0], [200.0, 0.0]])
+        .start_offset(0.25)
+        .end_offset(0.75);
 
     for i in 0..=10 {
         let u = i as f32 / 10.0;
@@ -78,7 +74,11 @@ fn main() {
         PathCommand::LineTo([200.0, 0.0]),
     ]);
 
-    println!("  Segments: {}  |  Arc length: {:.1}\n", compound.segment_count(), compound.arc_length());
+    println!(
+        "  Segments: {}  |  Arc length: {:.1}\n",
+        compound.segment_count(),
+        compound.arc_length()
+    );
 
     for i in 0..=steps {
         let u = i as f32 / steps as f32;
@@ -104,18 +104,20 @@ fn main() {
     println!("  Tension comparison: 0.0 vs 0.5 vs 1.5");
     println!("  ══════════════════════════════════════════════\n");
 
-    let points = vec![
-        [0.0, 0.0],
-        [50.0, 100.0],
-        [100.0, 0.0],
-    ];
+    let points = vec![[0.0, 0.0], [50.0, 100.0], [100.0, 0.0]];
 
     let low = PolyPath::from_points_with_tension(points.clone(), 0.0);
     let mid = PolyPath::from_points(points.clone());
     let high = PolyPath::from_points_with_tension(points, 1.5);
 
-    println!("  {:>5}  {:>12}  {:>12}  {:>12}", "u", "tension=0.0", "tension=0.5", "tension=1.5");
-    println!("  {:>5}  {:>12}  {:>12}  {:>12}", "---", "-----------", "-----------", "-----------");
+    println!(
+        "  {:>5}  {:>12}  {:>12}  {:>12}",
+        "u", "tension=0.0", "tension=0.5", "tension=1.5"
+    );
+    println!(
+        "  {:>5}  {:>12}  {:>12}  {:>12}",
+        "---", "-----------", "-----------", "-----------"
+    );
 
     for i in 0..=10 {
         let u = i as f32 / 10.0;
@@ -124,10 +126,7 @@ fn main() {
         let p_high = high.position(u);
         println!(
             "  {:.1}  ({:5.1},{:5.1})  ({:5.1},{:5.1})  ({:5.1},{:5.1})",
-            u,
-            p_low[0], p_low[1],
-            p_mid[0], p_mid[1],
-            p_high[0], p_high[1],
+            u, p_low[0], p_low[1], p_mid[0], p_mid[1], p_high[0], p_high[1],
         );
     }
 }

@@ -76,12 +76,14 @@ pub struct DragState {
     on_drag_start_cb: Option<Box<dyn FnMut([f32; 2])>>,
     /// Callback fired when drag ends.
     #[cfg(feature = "std")]
+    #[allow(clippy::type_complexity)]
     on_drag_end_cb: Option<Box<dyn FnMut([f32; 2], [f32; 2])>>,
     /// Callback fired on click (tap without significant movement).
     #[cfg(feature = "std")]
     on_click_cb: Option<Box<dyn FnMut([f32; 2])>>,
     /// Callback fired each frame during inertia throw (if using manual update).
     #[cfg(feature = "std")]
+    #[allow(clippy::type_complexity)]
     on_throw_update_cb: Option<Box<dyn FnMut([f32; 2], [f32; 2])>>,
     /// Click detection threshold (max distance moved to count as click).
     click_threshold: f32,
@@ -207,10 +209,7 @@ impl DragState {
         let dx = x - self.start_pointer[0];
         let dy = y - self.start_pointer[1];
 
-        let mut new_pos = [
-            self.start_position[0] + dx,
-            self.start_position[1] + dy,
-        ];
+        let mut new_pos = [self.start_position[0] + dx, self.start_position[1] + dy];
 
         new_pos = self.apply_constraints(new_pos);
 
@@ -262,8 +261,7 @@ impl DragState {
             }
         }
 
-        InertiaN::new(InertiaConfig::default_flick(), self.position)
-            .with_velocity(self.velocity)
+        InertiaN::new(InertiaConfig::default_flick(), self.position).with_velocity(self.velocity)
     }
 
     /// Current drag position.
@@ -331,11 +329,10 @@ mod tests {
 
     #[test]
     fn drag_axis_lock_x() {
-        let mut drag = DragState::new()
-            .with_constraints(DragConstraints {
-                axis_lock: Some(DragAxis::X),
-                ..Default::default()
-            });
+        let mut drag = DragState::new().with_constraints(DragConstraints {
+            axis_lock: Some(DragAxis::X),
+            ..Default::default()
+        });
         drag.on_pointer_down(0.0, 0.0);
         drag.on_pointer_move(50.0, 30.0, 1.0 / 60.0);
         let pos = drag.position();
@@ -345,11 +342,10 @@ mod tests {
 
     #[test]
     fn drag_axis_lock_y() {
-        let mut drag = DragState::new()
-            .with_constraints(DragConstraints {
-                axis_lock: Some(DragAxis::Y),
-                ..Default::default()
-            });
+        let mut drag = DragState::new().with_constraints(DragConstraints {
+            axis_lock: Some(DragAxis::Y),
+            ..Default::default()
+        });
         drag.on_pointer_down(0.0, 0.0);
         drag.on_pointer_move(50.0, 30.0, 1.0 / 60.0);
         let pos = drag.position();
@@ -359,11 +355,10 @@ mod tests {
 
     #[test]
     fn drag_bounds_clamping() {
-        let mut drag = DragState::new()
-            .with_constraints(DragConstraints {
-                bounds: Some([0.0, 0.0, 100.0, 100.0]),
-                ..Default::default()
-            });
+        let mut drag = DragState::new().with_constraints(DragConstraints {
+            bounds: Some([0.0, 0.0, 100.0, 100.0]),
+            ..Default::default()
+        });
         drag.on_pointer_down(50.0, 50.0);
         drag.on_pointer_move(200.0, 200.0, 1.0 / 60.0);
         let pos = drag.position();
@@ -373,16 +368,23 @@ mod tests {
 
     #[test]
     fn drag_grid_snapping() {
-        let mut drag = DragState::new()
-            .with_constraints(DragConstraints {
-                snap_to_grid: Some([10.0, 10.0]),
-                ..Default::default()
-            });
+        let mut drag = DragState::new().with_constraints(DragConstraints {
+            snap_to_grid: Some([10.0, 10.0]),
+            ..Default::default()
+        });
         drag.on_pointer_down(0.0, 0.0);
         drag.on_pointer_move(17.0, 23.0, 1.0 / 60.0);
         let pos = drag.position();
-        assert!((pos[0] - 20.0).abs() < 1e-6, "X should snap to 20: {}", pos[0]);
-        assert!((pos[1] - 20.0).abs() < 1e-6, "Y should snap to 20: {}", pos[1]);
+        assert!(
+            (pos[0] - 20.0).abs() < 1e-6,
+            "X should snap to 20: {}",
+            pos[0]
+        );
+        assert!(
+            (pos[1] - 20.0).abs() < 1e-6,
+            "Y should snap to 20: {}",
+            pos[1]
+        );
     }
 
     #[test]
@@ -407,7 +409,10 @@ mod tests {
         let pos_before = inertia.position();
         inertia.update(1.0 / 60.0);
         let pos_after = inertia.position();
-        assert!(pos_after[0] > pos_before[0], "Inertia should continue moving");
+        assert!(
+            pos_after[0] > pos_before[0],
+            "Inertia should continue moving"
+        );
     }
 
     #[test]

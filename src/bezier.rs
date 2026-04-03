@@ -233,28 +233,32 @@ mod tests {
 
     #[test]
     fn catmull_rom_endpoints() {
-        let spline = CatmullRomSpline::new(vec![
-            [0.0, 0.0],
-            [100.0, 50.0],
-            [200.0, 0.0],
-        ]);
+        let spline = CatmullRomSpline::new(vec![[0.0, 0.0], [100.0, 50.0], [200.0, 0.0]]);
 
         let start = spline.evaluate([0.0, 0.0], 0.0);
         let end = spline.evaluate([0.0, 0.0], 1.0);
 
-        assert!((start[0]).abs() < 1e-4, "Expected start x~0, got {}", start[0]);
-        assert!((start[1]).abs() < 1e-4, "Expected start y~0, got {}", start[1]);
-        assert!((end[0] - 200.0).abs() < 1e-4, "Expected end x~200, got {}", end[0]);
+        assert!(
+            (start[0]).abs() < 1e-4,
+            "Expected start x~0, got {}",
+            start[0]
+        );
+        assert!(
+            (start[1]).abs() < 1e-4,
+            "Expected start y~0, got {}",
+            start[1]
+        );
+        assert!(
+            (end[0] - 200.0).abs() < 1e-4,
+            "Expected end x~200, got {}",
+            end[0]
+        );
         assert!((end[1]).abs() < 1e-4, "Expected end y~0, got {}", end[1]);
     }
 
     #[test]
     fn catmull_rom_passes_through_midpoint() {
-        let spline = CatmullRomSpline::new(vec![
-            [0.0, 0.0],
-            [100.0, 100.0],
-            [200.0, 0.0],
-        ]);
+        let spline = CatmullRomSpline::new(vec![[0.0, 0.0], [100.0, 100.0], [200.0, 0.0]]);
 
         // At t=0.5, the spline should pass through [100, 100] (the middle knot)
         let mid = spline.evaluate([0.0, 0.0], 0.5);
@@ -272,12 +276,8 @@ mod tests {
 
     #[test]
     fn catmull_rom_four_points() {
-        let spline = CatmullRomSpline::new(vec![
-            [0.0, 0.0],
-            [100.0, 50.0],
-            [200.0, 0.0],
-            [300.0, 50.0],
-        ]);
+        let spline =
+            CatmullRomSpline::new(vec![[0.0, 0.0], [100.0, 50.0], [200.0, 0.0], [300.0, 50.0]]);
 
         let start = spline.evaluate([0.0, 0.0], 0.0);
         let end = spline.evaluate([0.0, 0.0], 1.0);
@@ -295,11 +295,8 @@ mod tests {
 
     #[test]
     fn catmull_rom_tension_zero_is_straight() {
-        let spline = CatmullRomSpline::new(vec![
-            [0.0, 0.0],
-            [100.0, 100.0],
-            [200.0, 0.0],
-        ]).tension(0.0);
+        let spline =
+            CatmullRomSpline::new(vec![[0.0, 0.0], [100.0, 100.0], [200.0, 0.0]]).tension(0.0);
 
         // With tension=0, segments should be straight lines
         // At t=0.25, should be at midpoint of first segment: [50, 50]
@@ -318,17 +315,11 @@ mod tests {
 
     #[test]
     fn catmull_rom_high_tension_overshoots() {
-        let normal = CatmullRomSpline::new(vec![
-            [0.0, 0.0],
-            [100.0, 100.0],
-            [200.0, 0.0],
-        ]).tension(0.5);
+        let normal =
+            CatmullRomSpline::new(vec![[0.0, 0.0], [100.0, 100.0], [200.0, 0.0]]).tension(0.5);
 
-        let high = CatmullRomSpline::new(vec![
-            [0.0, 0.0],
-            [100.0, 100.0],
-            [200.0, 0.0],
-        ]).tension(1.5);
+        let high =
+            CatmullRomSpline::new(vec![[0.0, 0.0], [100.0, 100.0], [200.0, 0.0]]).tension(1.5);
 
         // With higher tension, the curve should deviate more from straight lines
         let normal_pt = normal.evaluate([0.0, 0.0], 0.25);
@@ -356,16 +347,16 @@ mod tests {
 
     #[test]
     fn tangent_at_midpoint() {
-        let spline = CatmullRomSpline::new(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-            [200.0, 0.0],
-        ]);
+        let spline = CatmullRomSpline::new(vec![[0.0, 0.0], [100.0, 0.0], [200.0, 0.0]]);
 
         let tan = spline.tangent([0.0, 0.0], 0.5);
         // On a straight horizontal path, tangent should be roughly [+, 0]
         assert!(tan[0] > 0.0, "Expected positive x tangent, got {}", tan[0]);
-        assert!((tan[1]).abs() < 1.0, "Expected y tangent ~0, got {}", tan[1]);
+        assert!(
+            (tan[1]).abs() < 1.0,
+            "Expected y tangent ~0, got {}",
+            tan[1]
+        );
     }
 
     #[test]
@@ -377,6 +368,9 @@ mod tests {
     #[test]
     fn tangent_angle_vertical() {
         let angle = tangent_angle_deg([0.0, 1.0]);
-        assert!((angle - 90.0).abs() < 1e-4, "Expected 90 degrees, got {angle}");
+        assert!(
+            (angle - 90.0).abs() < 1e-4,
+            "Expected 90 degrees, got {angle}"
+        );
     }
 }

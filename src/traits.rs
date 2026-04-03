@@ -64,7 +64,7 @@ pub trait Update {
     ///
     /// Returns `true` while the animation is still running, `false` once it
     /// has completed (so a driver can clean it up automatically).
-        fn update(&mut self, dt: f32) -> bool;
+    fn update(&mut self, dt: f32) -> bool;
 }
 
 // Blanket impl for boxed updates
@@ -95,10 +95,7 @@ impl Interpolate for f64 {
 impl Interpolate for [f32; 2] {
     #[inline]
     fn lerp(&self, other: &Self, t: f32) -> Self {
-        [
-            self[0].lerp(&other[0], t),
-            self[1].lerp(&other[1], t),
-        ]
+        [self[0].lerp(&other[0], t), self[1].lerp(&other[1], t)]
     }
 }
 
@@ -173,7 +170,7 @@ mod tests {
     #[test]
     fn rgba_lerp_alpha() {
         let transparent = [1.0_f32, 0.0, 0.0, 0.0];
-        let opaque      = [1.0_f32, 0.0, 0.0, 1.0];
+        let opaque = [1.0_f32, 0.0, 0.0, 1.0];
         let half = transparent.lerp(&opaque, 0.5);
         assert!((half[3] - 0.5).abs() < 1e-6);
     }

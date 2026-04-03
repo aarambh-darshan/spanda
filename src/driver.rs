@@ -129,6 +129,7 @@ pub struct AnimationDriverArc(Arc<Mutex<AnimationDriver>>);
 #[cfg(feature = "std")]
 impl AnimationDriverArc {
     /// Create a new thread-safe driver.
+    #[allow(clippy::arc_with_non_send_sync)]
     pub fn new() -> Self {
         Self(Arc::new(Mutex::new(AnimationDriver::new())))
     }

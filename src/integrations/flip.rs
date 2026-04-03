@@ -27,7 +27,12 @@ pub struct FlipState {
 impl FlipState {
     /// Create a FlipState from explicit values (works everywhere).
     pub fn from_rect(x: f32, y: f32, width: f32, height: f32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     /// Capture the current bounding rect of a DOM element.
@@ -51,11 +56,22 @@ impl FlipState {
     pub fn diff(first: &FlipState, last: &FlipState) -> FlipAnimationBuilder {
         let dx = first.x - last.x;
         let dy = first.y - last.y;
-        let sx = if last.width > 0.0 { first.width / last.width } else { 1.0 };
-        let sy = if last.height > 0.0 { first.height / last.height } else { 1.0 };
+        let sx = if last.width > 0.0 {
+            first.width / last.width
+        } else {
+            1.0
+        };
+        let sy = if last.height > 0.0 {
+            first.height / last.height
+        } else {
+            1.0
+        };
 
         FlipAnimationBuilder {
-            dx, dy, sx, sy,
+            dx,
+            dy,
+            sx,
+            sy,
             duration: 0.3,
             easing: Easing::EaseOutCubic,
             #[cfg(all(feature = "std", not(feature = "bevy")))]

@@ -56,6 +56,7 @@ impl MorphPath {
     ///
     /// If the two point arrays have different lengths, the shorter one is
     /// automatically resampled to match the longer.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(from: Vec<[f32; 2]>, to: Vec<[f32; 2]>) -> MorphPathBuilder {
         MorphPathBuilder {
             from_points: from,
@@ -78,12 +79,7 @@ impl MorphPath {
         self.from_points
             .iter()
             .zip(self.to_points.iter())
-            .map(|(a, b)| {
-                [
-                    a[0] + (b[0] - a[0]) * t,
-                    a[1] + (b[1] - a[1]) * t,
-                ]
-            })
+            .map(|(a, b)| [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t])
             .collect()
     }
 
@@ -223,7 +219,13 @@ pub fn resample(points: &[[f32; 2]], target_count: usize) -> Vec<[f32; 2]> {
         // Binary search for the segment containing target_dist
         let seg = match lengths.binary_search_by(|l| l.partial_cmp(&target_dist).unwrap()) {
             Ok(idx) => idx.min(points.len() - 2),
-            Err(idx) => if idx == 0 { 0 } else { (idx - 1).min(points.len() - 2) },
+            Err(idx) => {
+                if idx == 0 {
+                    0
+                } else {
+                    (idx - 1).min(points.len() - 2)
+                }
+            }
         };
 
         let seg_start = lengths[seg];
@@ -271,9 +273,10 @@ pub fn resample(points: &[[f32; 2]], target_count: usize) -> Vec<[f32; 2]> {
 ///     .duration(1.0)
 ///     .build();
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum ShapeIndex {
     /// No rotation - use points as-is (default).
+    #[default]
     None,
     /// Rotate target points by this index offset.
     ///
@@ -282,12 +285,6 @@ pub enum ShapeIndex {
     Offset(i32),
     /// Automatically find the best rotation to minimize morph distance.
     Auto,
-}
-
-impl Default for ShapeIndex {
-    fn default() -> Self {
-        ShapeIndex::None
-    }
 }
 
 impl ShapeIndex {

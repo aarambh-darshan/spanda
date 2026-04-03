@@ -111,7 +111,13 @@ impl SvgPathParser {
 
         // Flush remaining
         if let Some(cmd) = current_cmd {
-            Self::flush_nums(cmd, &mut nums, &mut commands, &mut cursor, &mut subpath_start);
+            Self::flush_nums(
+                cmd,
+                &mut nums,
+                &mut commands,
+                &mut cursor,
+                &mut subpath_start,
+            );
         }
 
         commands

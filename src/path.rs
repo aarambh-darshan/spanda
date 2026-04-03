@@ -208,13 +208,7 @@ impl<T: Clone> MotionPath<T> {
     }
 
     /// Append a quadratic Bezier segment with a custom weight.
-    pub fn quadratic_weighted(
-        mut self,
-        start: T,
-        control: T,
-        end: T,
-        weight: f32,
-    ) -> Self {
+    pub fn quadratic_weighted(mut self, start: T, control: T, end: T, weight: f32) -> Self {
         self.segments
             .push((BezierPath::quadratic(start, control, end), weight.max(0.0)));
         self
@@ -470,12 +464,7 @@ mod tests {
 
     #[test]
     fn cubic_bezier_endpoints() {
-        let path = BezierPath::cubic(
-            [0.0_f32, 0.0],
-            [33.0, 100.0],
-            [66.0, 100.0],
-            [100.0, 0.0],
-        );
+        let path = BezierPath::cubic([0.0_f32, 0.0], [33.0, 100.0], [66.0, 100.0], [100.0, 0.0]);
         let start = path.evaluate(0.0);
         let end = path.evaluate(1.0);
         assert!((start[0]).abs() < 1e-6);
@@ -485,12 +474,7 @@ mod tests {
     #[test]
     fn cubic_bezier_s_curve() {
         // S-curve: both control points above the line
-        let path = BezierPath::cubic(
-            [0.0_f32, 0.0],
-            [0.0, 100.0],
-            [100.0, 100.0],
-            [100.0, 0.0],
-        );
+        let path = BezierPath::cubic([0.0_f32, 0.0], [0.0, 100.0], [100.0, 100.0], [100.0, 0.0]);
         let mid = path.evaluate(0.5);
         // At t=0.5, the de Casteljau gives y ≈ 75
         assert!(mid[1] > 50.0, "Expected y > 50 at midpoint, got {}", mid[1]);
@@ -515,9 +499,7 @@ mod tests {
 
     #[test]
     fn motion_path_two_segments_equal_weight() {
-        let path = MotionPath::new()
-            .line(0.0_f32, 100.0)
-            .line(100.0, 200.0);
+        let path = MotionPath::new().line(0.0_f32, 100.0).line(100.0, 200.0);
 
         // t=0.0 → start of first segment
         assert!((path.evaluate(0.0) - 0.0).abs() < 1e-6);
@@ -546,12 +528,8 @@ mod tests {
 
     #[test]
     fn motion_path_with_bezier() {
-        let path = MotionPath::new().cubic(
-            [0.0_f32, 0.0],
-            [0.0, 100.0],
-            [100.0, 100.0],
-            [100.0, 0.0],
-        );
+        let path =
+            MotionPath::new().cubic([0.0_f32, 0.0], [0.0, 100.0], [100.0, 100.0], [100.0, 0.0]);
 
         let start = path.evaluate(0.0);
         let end = path.evaluate(1.0);

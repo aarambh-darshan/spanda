@@ -91,6 +91,12 @@ impl<T: Animatable + core::fmt::Debug> core::fmt::Debug for KeyframeTrack<T> {
     }
 }
 
+impl<T: Animatable> Default for KeyframeTrack<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Animatable> KeyframeTrack<T> {
     /// Create an empty track.
     pub fn new() -> Self {

@@ -154,8 +154,7 @@ impl PolyPath {
     /// Create a smooth path through the given points.
     pub fn from_points(points: Vec<[f32; 2]>) -> Self {
         let spline = CatmullRomSpline::new(points);
-        let arc_table =
-            ArcLengthTable::build(|t| spline.evaluate([0.0, 0.0], t), ARC_LEN_SAMPLES);
+        let arc_table = ArcLengthTable::build(|t| spline.evaluate([0.0, 0.0], t), ARC_LEN_SAMPLES);
         Self {
             spline,
             arc_table,
@@ -171,8 +170,7 @@ impl PolyPath {
     /// higher values create more exaggerated curves.
     pub fn from_points_with_tension(points: Vec<[f32; 2]>, tension: f32) -> Self {
         let spline = CatmullRomSpline::new(points).tension(tension);
-        let arc_table =
-            ArcLengthTable::build(|t| spline.evaluate([0.0, 0.0], t), ARC_LEN_SAMPLES);
+        let arc_table = ArcLengthTable::build(|t| spline.evaluate([0.0, 0.0], t), ARC_LEN_SAMPLES);
         Self {
             spline,
             arc_table,
@@ -690,26 +688,22 @@ mod tests {
 
     #[test]
     fn polypath_basic_endpoints() {
-        let path = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-            [200.0, 0.0],
-        ]);
+        let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0], [200.0, 0.0]]);
 
         let start = path.position(0.0);
         let end = path.position(1.0);
         assert!((start[0]).abs() < 1.0, "Expected x~0, got {}", start[0]);
-        assert!((end[0] - 200.0).abs() < 1.0, "Expected x~200, got {}", end[0]);
+        assert!(
+            (end[0] - 200.0).abs() < 1.0,
+            "Expected x~200, got {}",
+            end[0]
+        );
     }
 
     #[test]
     fn polypath_constant_speed() {
         // Straight horizontal path
-        let path = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-            [200.0, 0.0],
-        ]);
+        let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0], [200.0, 0.0]]);
 
         // Arc-length parameterized: u=0.25 should give x~50
         let quarter = path.position(0.25);
@@ -722,10 +716,7 @@ mod tests {
 
     #[test]
     fn polypath_start_offset() {
-        let path = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-        ]).start_offset(0.5);
+        let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0]]).start_offset(0.5);
 
         // u=0 should start at 50% of the path
         let start = path.position(0.0);
@@ -738,10 +729,7 @@ mod tests {
 
     #[test]
     fn polypath_end_offset() {
-        let path = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-        ]).end_offset(0.5);
+        let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0]]).end_offset(0.5);
 
         // u=1.0 should be at 50% of the path
         let end = path.position(1.0);
@@ -754,10 +742,7 @@ mod tests {
 
     #[test]
     fn polypath_rotation() {
-        let path = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-        ]);
+        let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0]]);
 
         // Horizontal path should give ~0 degree rotation
         let rot = path.rotation_deg(0.5);
@@ -766,10 +751,7 @@ mod tests {
 
     #[test]
     fn polypath_rotation_offset() {
-        let path = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-        ]).rotation_offset(90.0);
+        let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0]]).rotation_offset(90.0);
 
         // Horizontal path + 90° offset = ~90°
         let rot = path.rotation_deg(0.5);
@@ -778,27 +760,20 @@ mod tests {
 
     #[test]
     fn polypath_with_tension() {
-        let normal = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [50.0, 100.0],
-            [100.0, 0.0],
-        ]);
+        let normal = PolyPath::from_points(vec![[0.0, 0.0], [50.0, 100.0], [100.0, 0.0]]);
 
-        let high = PolyPath::from_points_with_tension(
-            vec![
-                [0.0, 0.0],
-                [50.0, 100.0],
-                [100.0, 0.0],
-            ],
-            1.5,
-        );
+        let high =
+            PolyPath::from_points_with_tension(vec![[0.0, 0.0], [50.0, 100.0], [100.0, 0.0]], 1.5);
 
         // Different tension should produce different positions
         let p1 = normal.position(0.25);
         let p2 = high.position(0.25);
         // They may differ in y due to different control points
         let diff = ((p1[0] - p2[0]).powi(2) + (p1[1] - p2[1]).powi(2)).sqrt();
-        assert!(diff > 0.1, "Different tensions should produce different paths");
+        assert!(
+            diff > 0.1,
+            "Different tensions should produce different paths"
+        );
     }
 
     // ── CompoundPath tests ─────────────────────────────────────────────────
@@ -913,7 +888,10 @@ mod tests {
         ]);
 
         let rot = path.rotation_deg(0.5);
-        assert!((rot - 90.0).abs() < 1.0, "Expected ~90deg for upward path, got {rot}");
+        assert!(
+            (rot - 90.0).abs() < 1.0,
+            "Expected ~90deg for upward path, got {rot}"
+        );
     }
 
     #[test]

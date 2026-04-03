@@ -137,9 +137,7 @@ pub struct MockClock {
 impl MockClock {
     /// Create a mock clock returning `step_seconds` on every `delta()` call.
     pub fn new(step_seconds: f32) -> Self {
-        Self {
-            step: step_seconds,
-        }
+        Self { step: step_seconds }
     }
 }
 

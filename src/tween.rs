@@ -124,6 +124,7 @@ impl<T: Animatable> Tween<T> {
     ///
     /// Returns a [`TweenBuilder`] — call `.duration()`, `.easing()`,
     /// `.delay()`, and `.build()` to finish.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(start: T, end: T) -> TweenBuilder<T> {
         TweenBuilder {
             start,

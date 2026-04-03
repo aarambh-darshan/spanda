@@ -6,8 +6,8 @@
 //!
 //! Requires the `wasm-dom` feature.
 
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
 use web_sys::{Element, Event, EventTarget};
 
 use crate::drag::PointerData;
@@ -247,7 +247,8 @@ impl Observer {
                     }
                 }
             }) as Box<dyn FnMut(Event)>);
-            let _ = target.add_event_listener_with_callback("pointerdown", closure.as_ref().unchecked_ref());
+            let _ = target
+                .add_event_listener_with_callback("pointerdown", closure.as_ref().unchecked_ref());
             closures.push(("pointerdown".into(), closure));
         }
 
@@ -290,7 +291,8 @@ impl Observer {
                     }
                 }
             }) as Box<dyn FnMut(Event)>);
-            let _ = target.add_event_listener_with_callback("pointermove", closure.as_ref().unchecked_ref());
+            let _ = target
+                .add_event_listener_with_callback("pointermove", closure.as_ref().unchecked_ref());
             closures.push(("pointermove".into(), closure));
         }
 
@@ -309,7 +311,8 @@ impl Observer {
                     }
                 }
             }) as Box<dyn FnMut(Event)>);
-            let _ = target.add_event_listener_with_callback("pointerup", closure.as_ref().unchecked_ref());
+            let _ = target
+                .add_event_listener_with_callback("pointerup", closure.as_ref().unchecked_ref());
             closures.push(("pointerup".into(), closure));
         }
 
@@ -327,7 +330,8 @@ impl Observer {
                     }
                 }
             }) as Box<dyn FnMut(Event)>);
-            let _ = target.add_event_listener_with_callback("wheel", closure.as_ref().unchecked_ref());
+            let _ =
+                target.add_event_listener_with_callback("wheel", closure.as_ref().unchecked_ref());
             closures.push(("wheel".into(), closure));
         }
 
@@ -337,10 +341,9 @@ impl Observer {
     /// Remove all event listeners. Consumes the observer.
     pub fn unbind(self) {
         for (event_name, closure) in &self.closures {
-            let _ = self.target.remove_event_listener_with_callback(
-                event_name,
-                closure.as_ref().unchecked_ref(),
-            );
+            let _ = self
+                .target
+                .remove_event_listener_with_callback(event_name, closure.as_ref().unchecked_ref());
         }
         // closures are dropped here, releasing the JS closures
     }

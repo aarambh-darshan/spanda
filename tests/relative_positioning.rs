@@ -1,17 +1,26 @@
 //! Integration test — relative timeline positioning (At enum).
 
-use spanda::timeline::{Timeline, At};
-use spanda::tween::Tween;
+use spanda::timeline::{At, Timeline};
 use spanda::traits::Update;
+use spanda::tween::Tween;
 
 #[test]
 fn at_start_and_end_compose_correctly() {
-    let mut tl = Timeline::new()
-        .add("base", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+    let mut tl = Timeline::new().add("base", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
 
     // Set duration so At::End works
-    tl.add_at("second", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5, At::End);
-    tl.add_at("third", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Start);
+    tl.add_at(
+        "second",
+        Tween::new(0.0_f32, 1.0).duration(0.5).build(),
+        0.5,
+        At::End,
+    );
+    tl.add_at(
+        "third",
+        Tween::new(0.0_f32, 1.0).duration(0.3).build(),
+        0.3,
+        At::Start,
+    );
 
     tl.play();
 
@@ -34,8 +43,7 @@ fn at_start_and_end_compose_correctly() {
 
 #[test]
 fn at_label_syncs_animations() {
-    let mut tl = Timeline::new()
-        .add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.2);
+    let mut tl = Timeline::new().add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.2);
 
     // "scale" should start at the same time as "fade" (0.2)
     tl.add_at(
@@ -66,11 +74,15 @@ fn at_label_syncs_animations() {
 
 #[test]
 fn at_offset_creates_gap() {
-    let mut tl = Timeline::new()
-        .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+    let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
 
     // Give "a" duration metadata
-    tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Offset(0.2));
+    tl.add_at(
+        "b",
+        Tween::new(0.0_f32, 1.0).duration(0.3).build(),
+        0.3,
+        At::Offset(0.2),
+    );
 
     tl.play();
 

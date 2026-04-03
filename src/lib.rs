@@ -46,26 +46,26 @@ extern crate alloc;
 
 // ── Module declarations ───────────────────────────────────────────────────────
 
+pub mod bezier;
+pub mod clock;
+pub mod drag;
+pub mod driver;
 pub mod easing;
+pub mod gesture;
+pub mod inertia;
+pub mod integrations;
+pub mod keyframe;
+pub mod layout;
+pub mod morph;
+pub mod motion_path;
+pub mod path;
+pub mod scroll;
+pub mod spring;
+pub mod svg_draw;
+pub mod svg_path;
+pub mod timeline;
 pub mod traits;
 pub mod tween;
-pub mod keyframe;
-pub mod timeline;
-pub mod spring;
-pub mod clock;
-pub mod driver;
-pub mod scroll;
-pub mod path;
-pub mod bezier;
-pub mod motion_path;
-pub mod svg_path;
-pub mod svg_draw;
-pub mod morph;
-pub mod inertia;
-pub mod drag;
-pub mod layout;
-pub mod gesture;
-pub mod integrations;
 
 #[cfg(feature = "palette")]
 pub mod colour;
@@ -75,28 +75,30 @@ pub mod gpu;
 
 // ── Top-level re-exports (ergonomic imports) ──────────────────────────────────
 
-pub use easing::Easing;
-pub use traits::{Animatable, Interpolate, Update};
-pub use tween::{Tween, TweenState, snap_to, round_to};
-pub use keyframe::{KeyframeTrack, Keyframe, Loop};
-pub use timeline::{Timeline, Sequence, At, stagger};
-pub use spring::{Spring, SpringConfig, SpringN, SpringAnimatable};
-pub use driver::{AnimationDriver, AnimationId};
-pub use clock::{Clock, ManualClock, MockClock};
-pub use scroll::{ScrollClock, ScrollDriver};
-pub use path::{BezierPath, MotionPath, MotionPathTween, PathEvaluate};
 pub use bezier::{CatmullRomSpline, PathEvaluate2D, tangent_angle, tangent_angle_deg};
-pub use motion_path::{PolyPath, CompoundPath, PathCommand};
-pub use svg_path::SvgPathParser;
-pub use svg_draw::{draw_on, draw_on_reverse};
+pub use clock::{Clock, ManualClock, MockClock};
+pub use drag::{DragAxis, DragConstraints, DragState, PointerData};
+pub use driver::{AnimationDriver, AnimationId};
+pub use easing::Easing;
+pub use gesture::{Gesture, GestureConfig, GestureRecognizer, SwipeDirection};
+pub use inertia::{Inertia, InertiaConfig, InertiaN};
+pub use keyframe::{Keyframe, KeyframeTrack, Loop};
+pub use layout::{
+    LayoutAnimation, LayoutAnimator, LayoutTransition, Rect, SharedElementTransition,
+};
 pub use morph::{MorphPath, resample};
-pub use inertia::{Inertia, InertiaN, InertiaConfig};
-pub use drag::{DragState, DragConstraints, DragAxis, PointerData};
-pub use layout::{LayoutAnimator, LayoutAnimation, LayoutTransition, Rect, SharedElementTransition};
-pub use gesture::{GestureRecognizer, Gesture, GestureConfig, SwipeDirection};
+pub use motion_path::{CompoundPath, PathCommand, PolyPath};
+pub use path::{BezierPath, MotionPath, MotionPathTween, PathEvaluate};
+pub use scroll::{ScrollClock, ScrollDriver};
+pub use spring::{Spring, SpringAnimatable, SpringConfig, SpringN};
+pub use svg_draw::{draw_on, draw_on_reverse};
+pub use svg_path::SvgPathParser;
+pub use timeline::{At, Sequence, Timeline, stagger};
+pub use traits::{Animatable, Interpolate, Update};
+pub use tween::{Tween, TweenState, round_to, snap_to};
 
 #[cfg(feature = "std")]
 pub use clock::WallClock;
 
 #[cfg(feature = "palette")]
-pub use colour::{lerp_in_lab, lerp_in_linear, lerp_in_oklch, InLab, InLinear, InOklch};
+pub use colour::{InLab, InLinear, InOklch, lerp_in_lab, lerp_in_linear, lerp_in_oklch};

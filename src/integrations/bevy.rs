@@ -17,15 +17,15 @@
 //! ```
 
 use bevy_app::{App, Plugin, Update};
-use bevy_ecs::prelude::*;
-use bevy_ecs::message::{Message, MessageWriter};
 use bevy_ecs::component::Component;
+use bevy_ecs::message::{Message, MessageWriter};
+use bevy_ecs::prelude::*;
 use bevy_time::Time;
 
 use crate::spring::Spring;
+use crate::traits::Animatable;
 use crate::traits::Update as SpandaUpdate;
 use crate::tween::Tween;
-use crate::traits::Animatable;
 
 // ── TweenCompleted event ─────────────────────────────────────────────────────
 

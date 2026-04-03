@@ -16,9 +16,9 @@
 //! ```
 
 use crate::easing::Easing;
-use crate::timeline::{stagger, Timeline};
-use crate::tween::Tween;
+use crate::timeline::{Timeline, stagger};
 use crate::traits::Animatable;
+use crate::tween::Tween;
 
 /// Configuration options for [`SplitText`].
 ///
@@ -147,6 +147,7 @@ pub struct SplitText {
 
 impl SplitText {
     /// Split a string into characters and words. Works everywhere (no DOM).
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(text: &str) -> Self {
         Self::from_str_with_options(text, SplitTextOptions::default())
     }
@@ -172,7 +173,8 @@ impl SplitText {
                 continue;
             }
 
-            let char_start = text[char_index..].find(word_str)
+            let char_start = text[char_index..]
+                .find(word_str)
                 .map(|i| i + char_index)
                 .unwrap_or(char_index);
 

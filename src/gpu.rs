@@ -132,8 +132,12 @@ enum BatchBackend {
 impl core::fmt::Debug for BatchBackend {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
-            BatchBackend::Gpu { capacity, .. } => f.debug_struct("Gpu").field("capacity", capacity).finish(),
-            BatchBackend::Cpu { tweens } => f.debug_struct("Cpu").field("count", &tweens.len()).finish(),
+            BatchBackend::Gpu { capacity, .. } => {
+                f.debug_struct("Gpu").field("capacity", capacity).finish()
+            }
+            BatchBackend::Cpu { tweens } => {
+                f.debug_struct("Cpu").field("count", &tweens.len()).finish()
+            }
         }
     }
 }
@@ -195,9 +199,7 @@ impl GpuAnimationBatch {
     /// Useful for testing or when no GPU is available.
     pub fn new_cpu_fallback() -> Self {
         Self {
-            backend: BatchBackend::Cpu {
-                tweens: Vec::new(),
-            },
+            backend: BatchBackend::Cpu { tweens: Vec::new() },
             tween_data: Vec::new(),
             results: Vec::new(),
             elapsed: 0.0,
@@ -264,23 +266,23 @@ impl GpuAnimationBatch {
                 }
 
                 // Upload tween params
-                ctx.queue.write_buffer(
-                    param_buffer,
-                    0,
-                    bytemuck::cast_slice(&self.tween_data),
-                );
+                ctx.queue
+                    .write_buffer(param_buffer, 0, bytemuck::cast_slice(&self.tween_data));
 
                 // Upload globals
                 let globals = GpuGlobals {
                     elapsed: self.elapsed,
                     count: count as u32,
                 };
-                ctx.queue.write_buffer(globals_buffer, 0, bytemuck::bytes_of(&globals));
+                ctx.queue
+                    .write_buffer(globals_buffer, 0, bytemuck::bytes_of(&globals));
 
                 // Dispatch compute
-                let mut encoder = ctx.device.create_command_encoder(&wgpu::CommandEncoderDescriptor {
-                    label: Some("spanda-gpu-encoder"),
-                });
+                let mut encoder =
+                    ctx.device
+                        .create_command_encoder(&wgpu::CommandEncoderDescriptor {
+                            label: Some("spanda-gpu-encoder"),
+                        });
 
                 {
                     let mut pass = encoder.begin_compute_pass(&wgpu::ComputePassDescriptor {
@@ -483,7 +485,14 @@ fn create_gpu_resources(
         ],
     });
 
-    (pipeline, param_buffer, result_buffer, readback_buffer, globals_buffer, bind_group)
+    (
+        pipeline,
+        param_buffer,
+        result_buffer,
+        readback_buffer,
+        globals_buffer,
+        bind_group,
+    )
 }
 
 // ── Tests ───────────────────────────────────────────────────────────────────
@@ -506,7 +515,11 @@ mod tests {
         let results = batch.read_back();
         assert_eq!(results.len(), 2);
         assert!((results[0] - 50.0).abs() < 1.0, "results[0]={}", results[0]);
-        assert!((results[1] - 100.0).abs() < 1.0, "results[1]={}", results[1]);
+        assert!(
+            (results[1] - 100.0).abs() < 1.0,
+            "results[1]={}",
+            results[1]
+        );
     }
 
     #[test]
@@ -557,11 +570,7 @@ mod tests {
     fn cpu_fallback_many_tweens() {
         let mut batch = GpuAnimationBatch::new_cpu_fallback();
         for i in 0..1000 {
-            batch.push(
-                Tween::new(0.0_f32, i as f32)
-                    .duration(1.0)
-                    .build(),
-            );
+            batch.push(Tween::new(0.0_f32, i as f32).duration(1.0).build());
         }
         batch.tick(1.0);
         let results = batch.read_back();

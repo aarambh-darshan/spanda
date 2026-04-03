@@ -1,8 +1,8 @@
 //! Integration test — tween looping modes.
 
 use spanda::keyframe::Loop;
-use spanda::tween::Tween;
 use spanda::traits::Update;
+use spanda::tween::Tween;
 
 #[test]
 fn tween_ping_pong_stays_in_range() {
@@ -14,10 +14,7 @@ fn tween_ping_pong_stays_in_range() {
     for _ in 0..600 {
         t.update(1.0 / 60.0);
         let v = t.value();
-        assert!(
-            v >= -1.0 && v <= 101.0,
-            "PingPong value out of range: {v}"
-        );
+        assert!(v >= -1.0 && v <= 101.0, "PingPong value out of range: {v}");
     }
 }
 

@@ -34,10 +34,7 @@ fn stagger_five_tweens_completes() {
     }
 
     // Last tween starts at 0.4, runs 0.3 = total 0.7s
-    assert!(
-        total >= 0.65 && total <= 0.8,
-        "Expected ~0.7s, got {total}"
-    );
+    assert!(total >= 0.65 && total <= 0.8, "Expected ~0.7s, got {total}");
 }
 
 #[test]

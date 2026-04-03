@@ -661,7 +661,10 @@ mod tests {
         let diff = (srgb_mid.red - lab_mid.red).abs()
             + (srgb_mid.green - lab_mid.green).abs()
             + (srgb_mid.blue - lab_mid.blue).abs();
-        assert!(diff > 0.01, "Lab midpoint should differ from sRGB: diff={diff}");
+        assert!(
+            diff > 0.01,
+            "Lab midpoint should differ from sRGB: diff={diff}"
+        );
     }
 
     #[test]
