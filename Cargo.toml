@@ -62,6 +62,50 @@ required-features = ["palette"]
 name = "colour_demo"
 required-features = ["palette"]
 
+[[example]]
+name = "bevy_bounce"
+required-features = ["bevy"]
+
+[[example]]
+name = "catmull_rom_demo"
+required-features = ["std"]
+
+[[example]]
+name = "gesture_demo"
+required-features = ["std"]
+
+[[example]]
+name = "gpu_batch_demo"
+required-features = ["gpu"]
+
+[[example]]
+name = "inertia_demo"
+required-features = ["std"]
+
+[[example]]
+name = "morph_demo"
+required-features = ["std"]
+
+[[example]]
+name = "motion_path_demo"
+required-features = ["std"]
+
+[[example]]
+name = "spring_demo"
+required-features = ["std"]
+
+[[example]]
+name = "svg_path_demo"
+required-features = ["std"]
+
+[[example]]
+name = "tui_progress"
+required-features = ["std"]
+
+[[example]]
+name = "tui_spinner"
+required-features = ["std"]
+
 [profile.release]
 opt-level = 3
 lto = true
