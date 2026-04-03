@@ -18,8 +18,12 @@
 //!
 //! track.update(0.25);
 //! let value = track.value();
-//! assert!(value > 0.0 && value < 1.0);
+//! assert!(value > Some(0.0) && value < Some(1.0));
 //! ```
+
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
 
 #[cfg(not(feature = "std"))]
 use alloc::vec::Vec;
@@ -91,6 +95,12 @@ impl<T: Animatable + core::fmt::Debug> core::fmt::Debug for KeyframeTrack<T> {
     }
 }
 
+impl<T: Animatable> Default for KeyframeTrack<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T: Animatable> KeyframeTrack<T> {
     /// Create an empty track.
     pub fn new() -> Self {
@@ -113,7 +123,8 @@ impl<T: Animatable> KeyframeTrack<T> {
             value,
             easing: Easing::Linear,
         });
-        self.frames.sort_by(|a, b| a.time.partial_cmp(&b.time).unwrap());
+        self.frames
+            .sort_by(|a, b| a.time.partial_cmp(&b.time).unwrap());
         self
     }
 
@@ -124,7 +135,8 @@ impl<T: Animatable> KeyframeTrack<T> {
             value,
             easing,
         });
-        self.frames.sort_by(|a, b| a.time.partial_cmp(&b.time).unwrap());
+        self.frames
+            .sort_by(|a, b| a.time.partial_cmp(&b.time).unwrap());
         self
     }
 
@@ -140,28 +152,26 @@ impl<T: Animatable> KeyframeTrack<T> {
     }
 
     /// Evaluate the track at an arbitrary time `t` (pure, ignores `elapsed`).
-    pub fn value_at(&self, t: f32) -> T {
+    ///
+    /// Returns `None` if the track has no keyframes.
+    pub fn value_at(&self, t: f32) -> Option<T> {
         if self.frames.is_empty() {
-            panic!("KeyframeTrack::value_at called on empty track");
+            return None;
         }
 
         if self.frames.len() == 1 {
-            return self.frames[0].value.clone();
+            return Some(self.frames[0].value.clone());
         }
 
         // Clamp to valid range
         let t = t.clamp(0.0, self.duration());
 
         // Find the segment: last frame where frame.time <= t
-        let idx = self
-            .frames
-            .iter()
-            .rposition(|f| f.time <= t)
-            .unwrap_or(0);
+        let idx = self.frames.iter().rposition(|f| f.time <= t).unwrap_or(0);
 
         // If at or past the last frame, return last value
         if idx >= self.frames.len() - 1 {
-            return self.frames.last().unwrap().value.clone();
+            return Some(self.frames.last().unwrap().value.clone());
         }
 
         let a = &self.frames[idx];
@@ -169,16 +179,18 @@ impl<T: Animatable> KeyframeTrack<T> {
         let segment_duration = b.time - a.time;
 
         if segment_duration <= 0.0 {
-            return b.value.clone();
+            return Some(b.value.clone());
         }
 
         let local_t = ((t - a.time) / segment_duration).clamp(0.0, 1.0);
         let curved_t = a.easing.apply(local_t);
-        a.value.lerp(&b.value, curved_t)
+        Some(a.value.lerp(&b.value, curved_t))
     }
 
     /// Current value based on internal `elapsed` time.
-    pub fn value(&self) -> T {
+    ///
+    /// Returns `None` if the track has no keyframes.
+    pub fn value(&self) -> Option<T> {
         let t = self.effective_time();
         self.value_at(t)
     }
@@ -204,9 +216,7 @@ impl<T: Animatable> KeyframeTrack<T> {
 
         match &self.looping {
             Loop::Once => self.elapsed.clamp(0.0, dur),
-            Loop::Times(_) | Loop::Forever => {
-                self.elapsed % dur
-            }
+            Loop::Times(_) | Loop::Forever => self.elapsed % dur,
             Loop::PingPong => {
                 let cycle = 2.0 * dur;
                 let cycle_t = self.elapsed % cycle;
@@ -267,16 +277,21 @@ mod tests {
     #[test]
     fn single_frame_returns_its_value() {
         let track = KeyframeTrack::new().push(0.0, 42.0_f32);
-        assert!((track.value_at(0.0) - 42.0).abs() < 1e-6);
-        assert!((track.value_at(999.0) - 42.0).abs() < 1e-6);
+        assert!((track.value_at(0.0).unwrap() - 42.0).abs() < 1e-6);
+        assert!((track.value_at(999.0).unwrap() - 42.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn empty_track_returns_none() {
+        let track = KeyframeTrack::<f32>::new();
+        assert!(track.value_at(0.0).is_none());
+        assert!(track.value().is_none());
     }
 
     #[test]
     fn two_frames_interpolate() {
-        let track = KeyframeTrack::new()
-            .push(0.0, 0.0_f32)
-            .push(1.0, 100.0);
-        assert!((track.value_at(0.5) - 50.0).abs() < 1e-4);
+        let track = KeyframeTrack::new().push(0.0, 0.0_f32).push(1.0, 100.0);
+        assert!((track.value_at(0.5).unwrap() - 50.0).abs() < 1e-4);
     }
 
     #[test]
@@ -285,8 +300,8 @@ mod tests {
             .push(0.0, 0.0_f32)
             .push(1.0, 100.0)
             .push(2.0, 0.0);
-        assert!((track.value_at(0.5) - 50.0).abs() < 1e-4);
-        assert!((track.value_at(1.5) - 50.0).abs() < 1e-4);
+        assert!((track.value_at(0.5).unwrap() - 50.0).abs() < 1e-4);
+        assert!((track.value_at(1.5).unwrap() - 50.0).abs() < 1e-4);
     }
 
     #[test]
@@ -323,7 +338,7 @@ mod tests {
             .looping(Loop::PingPong);
 
         // At t=1.5 in ping-pong: cycle = 2.0, cycle_t = 1.5, backward → t = 0.5
-        assert!((track.value_at(0.5) - 50.0).abs() < 1e-4);
+        assert!((track.value_at(0.5).unwrap() - 50.0).abs() < 1e-4);
     }
 
     #[test]
@@ -340,11 +355,9 @@ mod tests {
 
     #[test]
     fn out_of_bounds_clamps() {
-        let track = KeyframeTrack::new()
-            .push(0.0, 0.0_f32)
-            .push(1.0, 100.0);
-        assert!((track.value_at(-5.0) - 0.0).abs() < 1e-6);
-        assert!((track.value_at(99.0) - 100.0).abs() < 1e-6);
+        let track = KeyframeTrack::new().push(0.0, 0.0_f32).push(1.0, 100.0);
+        assert!((track.value_at(-5.0).unwrap() - 0.0).abs() < 1e-6);
+        assert!((track.value_at(99.0).unwrap() - 100.0).abs() < 1e-6);
     }
 
     #[test]
@@ -353,15 +366,13 @@ mod tests {
             .push_with_easing(0.0, 0.0_f32, Easing::EaseInQuad)
             .push(1.0, 100.0);
         // EaseInQuad at t=0.5 → 0.25, so value ≈ 25.0
-        assert!((track.value_at(0.5) - 25.0).abs() < 1e-4);
+        assert!((track.value_at(0.5).unwrap() - 25.0).abs() < 1e-4);
     }
 
     #[test]
     fn update_advances_value() {
-        let mut track = KeyframeTrack::new()
-            .push(0.0, 0.0_f32)
-            .push(1.0, 100.0);
+        let mut track = KeyframeTrack::new().push(0.0, 0.0_f32).push(1.0, 100.0);
         track.update(0.5);
-        assert!((track.value() - 50.0).abs() < 1e-4);
+        assert!((track.value().unwrap() - 50.0).abs() < 1e-4);
     }
 }

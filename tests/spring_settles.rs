@@ -8,8 +8,8 @@ fn all_presets_settle_to_target() {
     let configs = [
         ("gentle", SpringConfig::gentle()),
         ("wobbly", SpringConfig::wobbly()),
-        ("stiff",  SpringConfig::stiff()),
-        ("slow",   SpringConfig::slow()),
+        ("stiff", SpringConfig::stiff()),
+        ("slow", SpringConfig::slow()),
     ];
 
     for (name, config) in &configs {

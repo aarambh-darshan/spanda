@@ -5,9 +5,10 @@
 //! this module provides the DOM binding.
 //!
 //! Requires the `wasm-dom` feature.
+#![allow(clippy::type_complexity)]
 
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
 use web_sys::{Element, Event, PointerEvent};
 
 use crate::drag::{DragConstraints, DragState};
@@ -23,6 +24,7 @@ pub struct Draggable {
     state: Rc<RefCell<DragState>>,
     element: Element,
     closures: Vec<(String, Closure<dyn FnMut(Event)>)>,
+    #[allow(dead_code)]
     last_time: Rc<RefCell<f64>>,
 }
 
@@ -54,11 +56,13 @@ impl Draggable {
             let lt = last_time.clone();
             let closure = Closure::wrap(Box::new(move |e: Event| {
                 if let Ok(pe) = e.dyn_into::<PointerEvent>() {
-                    s.borrow_mut().on_pointer_down(pe.client_x() as f32, pe.client_y() as f32);
+                    s.borrow_mut()
+                        .on_pointer_down(pe.client_x() as f32, pe.client_y() as f32);
                     *lt.borrow_mut() = js_sys::Date::now();
                 }
             }) as Box<dyn FnMut(Event)>);
-            let _ = target.add_event_listener_with_callback("pointerdown", closure.as_ref().unchecked_ref());
+            let _ = target
+                .add_event_listener_with_callback("pointerdown", closure.as_ref().unchecked_ref());
             closures.push(("pointerdown".into(), closure));
         }
 
@@ -70,12 +74,18 @@ impl Draggable {
                 if let Ok(pe) = e.dyn_into::<PointerEvent>() {
                     let now = js_sys::Date::now();
                     let prev = *lt.borrow();
-                    let dt = if prev > 0.0 { ((now - prev) / 1000.0) as f32 } else { 1.0 / 60.0 };
+                    let dt = if prev > 0.0 {
+                        ((now - prev) / 1000.0) as f32
+                    } else {
+                        1.0 / 60.0
+                    };
                     *lt.borrow_mut() = now;
-                    s.borrow_mut().on_pointer_move(pe.client_x() as f32, pe.client_y() as f32, dt);
+                    s.borrow_mut()
+                        .on_pointer_move(pe.client_x() as f32, pe.client_y() as f32, dt);
                 }
             }) as Box<dyn FnMut(Event)>);
-            let _ = target.add_event_listener_with_callback("pointermove", closure.as_ref().unchecked_ref());
+            let _ = target
+                .add_event_listener_with_callback("pointermove", closure.as_ref().unchecked_ref());
             closures.push(("pointermove".into(), closure));
         }
 
@@ -88,7 +98,10 @@ impl Draggable {
                 }
             }) as Box<dyn FnMut(Event)>);
             if let Some(win) = web_sys::window() {
-                let _ = win.add_event_listener_with_callback("pointerup", closure.as_ref().unchecked_ref());
+                let _ = win.add_event_listener_with_callback(
+                    "pointerup",
+                    closure.as_ref().unchecked_ref(),
+                );
             }
             closures.push(("pointerup".into(), closure));
         }
@@ -99,11 +112,6 @@ impl Draggable {
             closures,
             last_time,
         }
-    }
-
-    /// Get a snapshot of the current drag state.
-    pub fn state(&self) -> DragState {
-        self.state.borrow().clone()
     }
 
     /// Current position.
@@ -129,10 +137,8 @@ impl Draggable {
                     );
                 }
             } else {
-                let _ = target.remove_event_listener_with_callback(
-                    name,
-                    closure.as_ref().unchecked_ref(),
-                );
+                let _ = target
+                    .remove_event_listener_with_callback(name, closure.as_ref().unchecked_ref());
             }
         }
     }

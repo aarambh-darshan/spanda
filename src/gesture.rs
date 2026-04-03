@@ -26,10 +26,14 @@
 //! }
 //! ```
 
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
 use crate::drag::PointerData;
 
 #[cfg(not(feature = "std"))]
-use alloc::{boxed::Box, vec, vec::Vec};
+use alloc::vec::Vec;
 
 /// Recognised gesture types.
 #[derive(Debug, Clone, PartialEq)]
@@ -230,7 +234,11 @@ impl GestureRecognizer {
     /// Returns a gesture if a multi-touch gesture (pinch/rotate) is detected.
     pub fn on_pointer_move(&mut self, data: PointerData) -> Option<Gesture> {
         // Find and update the matching touch
-        if let Some(touch) = self.active_touches.iter_mut().find(|t| t.id == data.pointer_id) {
+        if let Some(touch) = self
+            .active_touches
+            .iter_mut()
+            .find(|t| t.id == data.pointer_id)
+        {
             let dx = data.x - touch.current_pos[0];
             let dy = data.y - touch.current_pos[1];
             touch.current_pos = [data.x, data.y];
@@ -250,7 +258,10 @@ impl GestureRecognizer {
     ///
     /// Returns a gesture if a single-touch gesture (tap/swipe) is detected.
     pub fn on_pointer_up(&mut self, data: PointerData) -> Option<Gesture> {
-        let touch_idx = self.active_touches.iter().position(|t| t.id == data.pointer_id);
+        let touch_idx = self
+            .active_touches
+            .iter()
+            .position(|t| t.id == data.pointer_id);
         let touch = match touch_idx {
             Some(idx) => self.active_touches.remove(idx),
             None => return None,
@@ -292,7 +303,11 @@ impl GestureRecognizer {
                 let dx = delta[0].abs();
                 let dy = delta[1].abs();
                 let direction = if dx > dy {
-                    if delta[0] > 0.0 { SwipeDirection::Right } else { SwipeDirection::Left }
+                    if delta[0] > 0.0 {
+                        SwipeDirection::Right
+                    } else {
+                        SwipeDirection::Left
+                    }
                 } else if delta[1] > 0.0 {
                     SwipeDirection::Down
                 } else {
@@ -324,8 +339,7 @@ impl GestureRecognizer {
             let hold_time = self.elapsed - touch.start_time;
             let dist = touch.distance_from_start();
 
-            if hold_time >= self.config.long_press_threshold
-                && dist < self.config.tap_max_distance
+            if hold_time >= self.config.long_press_threshold && dist < self.config.tap_max_distance
             {
                 self.long_press_fired = true;
                 let gesture = Gesture::LongPress {
@@ -477,7 +491,8 @@ mod tests {
         let g = r.on_pointer_up(pointer(0, 150.0, 100.0));
         assert!(
             !matches!(g, Some(Gesture::Tap { .. })),
-            "Should not be a tap: {:?}", g
+            "Should not be a tap: {:?}",
+            g
         );
     }
 
@@ -489,7 +504,8 @@ mod tests {
         let g = r.on_pointer_up(pointer(0, 101.0, 100.0));
         assert!(
             !matches!(g, Some(Gesture::Tap { .. })),
-            "Should not be a tap after 500ms: {:?}", g
+            "Should not be a tap after 500ms: {:?}",
+            g
         );
     }
 
@@ -518,7 +534,8 @@ mod tests {
         let g = r.update(0.5);
         assert!(
             !matches!(g, Some(Gesture::LongPress { .. })),
-            "Long press should be cancelled by movement: {:?}", g
+            "Long press should be cancelled by movement: {:?}",
+            g
         );
     }
 
@@ -530,7 +547,11 @@ mod tests {
         r.on_pointer_move(pointer(0, 250.0, 105.0)); // 150px right
         let g = r.on_pointer_up(pointer(0, 250.0, 105.0));
         match g {
-            Some(Gesture::Swipe { direction, velocity, .. }) => {
+            Some(Gesture::Swipe {
+                direction,
+                velocity,
+                ..
+            }) => {
                 assert_eq!(direction, SwipeDirection::Right);
                 assert!(velocity > 300.0, "velocity={velocity}");
             }
@@ -563,7 +584,8 @@ mod tests {
         // 100px / 2s = 50 px/s < 300 px/s threshold
         assert!(
             !matches!(g, Some(Gesture::Swipe { .. })),
-            "Should not be a swipe at 50 px/s: {:?}", g
+            "Should not be a swipe at 50 px/s: {:?}",
+            g
         );
     }
 
@@ -615,7 +637,7 @@ mod tests {
     #[test]
     fn custom_config_thresholds() {
         let config = GestureConfig {
-            tap_max_distance: 50.0,  // very generous
+            tap_max_distance: 50.0, // very generous
             tap_max_duration: 1.0,
             long_press_threshold: 2.0, // prevent long press from firing before pointer up
             ..Default::default()
@@ -644,8 +666,8 @@ mod tests {
     #[cfg(feature = "std")]
     #[test]
     fn callback_fires_on_tap() {
-        use std::sync::atomic::{AtomicU32, Ordering};
         use std::sync::Arc;
+        use std::sync::atomic::{AtomicU32, Ordering};
 
         let count = Arc::new(AtomicU32::new(0));
         let count_clone = count.clone();

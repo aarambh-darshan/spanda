@@ -21,7 +21,12 @@
 //! ```
 
 #[cfg(not(feature = "std"))]
-use alloc::{boxed::Box, format, string::String, vec::Vec};
+use alloc::{
+    boxed::Box,
+    format,
+    string::{String, ToString},
+    vec::Vec,
+};
 
 use crate::keyframe::Loop;
 use crate::traits::Update;
@@ -82,6 +87,18 @@ pub enum At<'a> {
 
 // ── TimelineEntry ────────────────────────────────────────────────────────────
 
+/// Type of timeline entry.
+#[derive(Debug, Clone, PartialEq)]
+enum EntryKind {
+    /// Regular animation entry.
+    Animation,
+    /// Callback entry (fires at a specific time).
+    #[cfg(feature = "std")]
+    Callback,
+    /// Pause point (timeline pauses when reached).
+    Pause,
+}
+
 /// A single entry in a [`Timeline`].
 struct TimelineEntry {
     /// Human-readable label.
@@ -97,6 +114,11 @@ struct TimelineEntry {
     started: bool,
     /// Whether this entry has completed.
     completed: bool,
+    /// Entry kind (animation, callback, or pause).
+    kind: EntryKind,
+    /// Callback function for callback entries.
+    #[cfg(feature = "std")]
+    callback: Option<Box<dyn FnMut()>>,
 }
 
 impl core::fmt::Debug for TimelineEntry {
@@ -107,6 +129,7 @@ impl core::fmt::Debug for TimelineEntry {
             .field("duration", &self.duration)
             .field("started", &self.started)
             .field("completed", &self.completed)
+            .field("kind", &self.kind)
             .finish()
     }
 }
@@ -156,21 +179,47 @@ impl Timeline {
     }
 
     /// Add a labelled animation starting at `start_at` seconds.
-    pub fn add<A: Update + 'static>(
-        mut self,
-        label: &str,
-        animation: A,
-        start_at: f32,
-    ) -> Self {
+    ///
+    /// The `duration` parameter specifies the animation's expected duration,
+    /// which is used by [`At::End`] and [`At::Offset`] for relative positioning.
+    pub fn add<A: Update + 'static>(mut self, label: &str, animation: A, start_at: f32) -> Self {
         // We estimate duration by the animation — for tweens we can't directly
         // read it here because the trait is erased, so the caller can set it.
         self.entries.push(TimelineEntry {
             label: label.to_string(),
             animation: Box::new(animation),
             start_at,
-            duration: 0.0, // filled in by the Sequence builder
+            duration: 0.0, // filled in by the Sequence builder or add_with_duration()
             started: false,
             completed: false,
+            kind: EntryKind::Animation,
+            #[cfg(feature = "std")]
+            callback: None,
+        });
+        self
+    }
+
+    /// Add a labelled animation with explicit duration for correct relative positioning.
+    ///
+    /// Use this instead of [`Timeline::add`] when you need [`At::End`] or
+    /// [`At::Offset`] to reference this entry's duration.
+    pub fn add_with_duration<A: Update + 'static>(
+        mut self,
+        label: &str,
+        animation: A,
+        start_at: f32,
+        duration: f32,
+    ) -> Self {
+        self.entries.push(TimelineEntry {
+            label: label.to_string(),
+            animation: Box::new(animation),
+            start_at,
+            duration,
+            started: false,
+            completed: false,
+            kind: EntryKind::Animation,
+            #[cfg(feature = "std")]
+            callback: None,
         });
         self
     }
@@ -222,6 +271,9 @@ impl Timeline {
             duration,
             started: false,
             completed: false,
+            kind: EntryKind::Animation,
+            #[cfg(feature = "std")]
+            callback: None,
         });
     }
 
@@ -309,6 +361,125 @@ impl Timeline {
     pub fn time_scale(&self) -> f32 {
         self.time_scale
     }
+
+    /// Total duration including all nested timelines (same as `duration()`).
+    ///
+    /// For consistency with GSAP's `totalDuration()`.
+    pub fn total_duration(&self) -> f32 {
+        self.duration()
+    }
+
+    /// Total progress from 0.0 to 1.0 (same as `progress()`).
+    ///
+    /// For consistency with GSAP's `totalProgress()`.
+    pub fn total_progress(&self) -> f32 {
+        self.progress()
+    }
+
+    /// Get the labels of all entries matching a predicate.
+    ///
+    /// GSAP-style `getTweensOf` equivalent — query animations by label pattern.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use spanda::timeline::Timeline;
+    /// use spanda::tween::Tween;
+    ///
+    /// let timeline = Timeline::new()
+    ///     .add("fade_in", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0)
+    ///     .add("fade_out", Tween::new(1.0_f32, 0.0).duration(0.5).build(), 0.5);
+    ///
+    /// let fades: Vec<_> = timeline.get_entries_by_label(|l| l.starts_with("fade")).collect();
+    /// assert_eq!(fades.len(), 2);
+    /// ```
+    pub fn get_entries_by_label<'a, F>(&'a self, predicate: F) -> impl Iterator<Item = &'a str>
+    where
+        F: Fn(&str) -> bool + 'a,
+    {
+        self.entries
+            .iter()
+            .filter(move |e| predicate(&e.label))
+            .map(|e| e.label.as_str())
+    }
+
+    /// Insert a callback at a specific time in the timeline.
+    ///
+    /// GSAP-style `.call()` — the callback fires when the timeline reaches
+    /// the specified time.
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let mut timeline = Timeline::new()
+    ///     .add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+    ///
+    /// timeline.call(0.25, || println!("Halfway through fade!"));
+    /// timeline.play();
+    /// ```
+    #[cfg(feature = "std")]
+    pub fn call<F: FnMut() + 'static>(&mut self, time: f32, callback: F) {
+        // Create a no-op animation that immediately completes
+        struct NoOp;
+        impl Update for NoOp {
+            fn update(&mut self, _dt: f32) -> bool {
+                false
+            }
+        }
+
+        self.entries.push(TimelineEntry {
+            label: format!("__call_{:.3}", time),
+            animation: Box::new(NoOp),
+            start_at: time.max(0.0),
+            duration: 0.0,
+            started: false,
+            completed: false,
+            kind: EntryKind::Callback,
+            callback: Some(Box::new(callback)),
+        });
+    }
+
+    /// Insert a pause point at a specific time in the timeline.
+    ///
+    /// GSAP-style `.addPause()` — the timeline pauses when it reaches this time.
+    /// Use `timeline.resume()` to continue playback.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use spanda::timeline::{Timeline, TimelineState};
+    /// use spanda::tween::Tween;
+    /// use spanda::traits::Update;
+    ///
+    /// let mut timeline = Timeline::new()
+    ///     .add("fade", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+    ///
+    /// timeline.add_pause(0.5); // Pause halfway through
+    /// timeline.play();
+    /// timeline.update(0.6); // Will pause at 0.5
+    /// assert_eq!(*timeline.state(), TimelineState::Paused);
+    /// ```
+    pub fn add_pause(&mut self, time: f32) {
+        // Create a no-op animation that immediately completes
+        struct NoOp;
+        impl Update for NoOp {
+            fn update(&mut self, _dt: f32) -> bool {
+                false
+            }
+        }
+
+        self.entries.push(TimelineEntry {
+            label: format!("__pause_{:.3}", time),
+            animation: Box::new(NoOp),
+            start_at: time.max(0.0),
+            duration: 0.0,
+            started: false,
+            completed: false,
+            kind: EntryKind::Pause,
+            #[cfg(feature = "std")]
+            callback: None,
+        });
+    }
 }
 
 impl Default for Timeline {
@@ -327,6 +498,7 @@ impl Update for Timeline {
         self.elapsed += dt;
 
         let mut all_done = true;
+        let mut should_pause = false;
 
         for entry in &mut self.entries {
             if entry.completed {
@@ -335,26 +507,56 @@ impl Update for Timeline {
 
             // Check if this entry should be active
             if self.elapsed >= entry.start_at {
-                // Compute the effective dt for this entry.
-                // If the entry just started this frame, only give it the leftover
-                // time after its start_at, not the full frame dt.
-                let entry_dt = if !entry.started {
-                    entry.started = true;
-                    // Time that has elapsed since this entry's start_at
-                    (self.elapsed - entry.start_at).min(dt)
-                } else {
-                    dt
-                };
+                match entry.kind {
+                    EntryKind::Pause => {
+                        if !entry.started {
+                            entry.started = true;
+                            entry.completed = true;
+                            should_pause = true;
+                            // Clamp elapsed to the pause point
+                            self.elapsed = entry.start_at;
+                        }
+                    }
+                    #[cfg(feature = "std")]
+                    EntryKind::Callback => {
+                        if !entry.started {
+                            entry.started = true;
+                            entry.completed = true;
+                            // Fire the callback
+                            if let Some(ref mut cb) = entry.callback {
+                                cb();
+                            }
+                        }
+                    }
+                    EntryKind::Animation => {
+                        // Compute the effective dt for this entry.
+                        // If the entry just started this frame, only give it the leftover
+                        // time after its start_at, not the full frame dt.
+                        let entry_dt = if !entry.started {
+                            entry.started = true;
+                            // Time that has elapsed since this entry's start_at
+                            (self.elapsed - entry.start_at).min(dt)
+                        } else {
+                            dt
+                        };
 
-                let still_running = entry.animation.update(entry_dt);
-                if !still_running {
-                    entry.completed = true;
-                } else {
-                    all_done = false;
+                        let still_running = entry.animation.update(entry_dt);
+                        if !still_running {
+                            entry.completed = true;
+                        } else {
+                            all_done = false;
+                        }
+                    }
                 }
             } else {
                 all_done = false;
             }
+        }
+
+        // Handle pause after processing all entries
+        if should_pause {
+            self.state = TimelineState::Paused;
+            return true;
         }
 
         if all_done && !self.entries.is_empty() {
@@ -460,6 +662,9 @@ impl Sequence {
                 duration,
                 started: false,
                 completed: false,
+                kind: EntryKind::Animation,
+                #[cfg(feature = "std")]
+                callback: None,
             });
         }
 
@@ -509,10 +714,7 @@ impl core::fmt::Debug for Sequence {
 /// timeline.play();
 /// // Animations start at t=0.0, 0.1, 0.2, 0.3, 0.4
 /// ```
-pub fn stagger<A: Update + 'static>(
-    animations: Vec<(A, f32)>,
-    stagger_delay: f32,
-) -> Timeline {
+pub fn stagger<A: Update + 'static>(animations: Vec<(A, f32)>, stagger_delay: f32) -> Timeline {
     let mut timeline = Timeline {
         entries: Vec::new(),
         elapsed: 0.0,
@@ -533,6 +735,9 @@ pub fn stagger<A: Update + 'static>(
             duration,
             started: false,
             completed: false,
+            kind: EntryKind::Animation,
+            #[cfg(feature = "std")]
+            callback: None,
         });
     }
 
@@ -548,8 +753,7 @@ mod tests {
 
     #[test]
     fn timeline_plays_to_completion() {
-        let mut tl = Timeline::new()
-            .add("t1", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+        let mut tl = Timeline::new().add("t1", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
         tl.play();
 
         assert!(tl.update(0.3));
@@ -587,8 +791,7 @@ mod tests {
 
     #[test]
     fn timeline_pause_and_resume() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
         tl.play();
 
         tl.update(0.3);
@@ -604,8 +807,7 @@ mod tests {
 
     #[test]
     fn timeline_reset() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
         tl.play();
         tl.update(0.5);
         assert_eq!(*tl.state(), TimelineState::Completed);
@@ -642,14 +844,13 @@ mod tests {
     #[cfg(feature = "std")]
     #[test]
     fn on_finish_callback_fires() {
-        use std::sync::atomic::{AtomicBool, Ordering};
         use std::sync::Arc;
+        use std::sync::atomic::{AtomicBool, Ordering};
 
         let fired = Arc::new(AtomicBool::new(false));
         let fired_clone = fired.clone();
 
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
         tl.on_finish(move || {
             fired_clone.store(true, Ordering::SeqCst);
         });
@@ -663,8 +864,7 @@ mod tests {
 
     #[test]
     fn timeline_time_scale_double_speed() {
-        let mut tl = Timeline::new()
-            .add("t1", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+        let mut tl = Timeline::new().add("t1", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
         tl.set_time_scale(2.0);
         tl.play();
         assert!(!tl.update(0.5)); // effective dt = 1.0, should complete
@@ -673,8 +873,7 @@ mod tests {
 
     #[test]
     fn timeline_time_scale_half_speed() {
-        let mut tl = Timeline::new()
-            .add("t1", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+        let mut tl = Timeline::new().add("t1", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
         tl.set_time_scale(0.5);
         tl.play();
         tl.update(1.0); // effective dt = 0.5
@@ -685,9 +884,9 @@ mod tests {
 
     #[test]
     fn stagger_creates_offset_timeline() {
-        let tweens: Vec<_> = (0..3).map(|_| {
-            (Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5)
-        }).collect();
+        let tweens: Vec<_> = (0..3)
+            .map(|_| (Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5))
+            .collect();
 
         let mut tl = stagger(tweens, 0.2);
         tl.play();
@@ -700,9 +899,14 @@ mod tests {
         let mut total = 0.2;
         while tl.update(0.01) {
             total += 0.01;
-            if total > 5.0 { panic!("Stagger timeline didn't complete"); }
+            if total > 5.0 {
+                panic!("Stagger timeline didn't complete");
+            }
         }
-        assert!(total >= 0.6 && total <= 1.0, "Expected ~0.7-0.9s, got {total}");
+        assert!(
+            total >= 0.6 && total <= 1.0,
+            "Expected ~0.7-0.9s, got {total}"
+        );
     }
 
     #[test]
@@ -715,10 +919,14 @@ mod tests {
 
     #[test]
     fn at_start_places_at_zero() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5);
 
-        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Start);
+        tl.add_at(
+            "b",
+            Tween::new(0.0_f32, 1.0).duration(0.3).build(),
+            0.3,
+            At::Start,
+        );
 
         // Entry "b" should start at 0.0
         assert!(
@@ -730,12 +938,16 @@ mod tests {
 
     #[test]
     fn at_end_places_after_last() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
         // Give entry "a" a known duration for At::End to work
         tl.entries[0].duration = 0.5;
 
-        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::End);
+        tl.add_at(
+            "b",
+            Tween::new(0.0_f32, 1.0).duration(0.3).build(),
+            0.3,
+            At::End,
+        );
 
         // Entry "b" should start at 0.5 (end of "a")
         assert!(
@@ -747,8 +959,8 @@ mod tests {
 
     #[test]
     fn at_label_places_at_same_time() {
-        let mut tl = Timeline::new()
-            .add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.3);
+        let mut tl =
+            Timeline::new().add("fade", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.3);
 
         tl.add_at(
             "scale",
@@ -767,11 +979,15 @@ mod tests {
 
     #[test]
     fn at_offset_places_relative_to_previous() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.0);
         tl.entries[0].duration = 0.5;
 
-        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Offset(0.2));
+        tl.add_at(
+            "b",
+            Tween::new(0.0_f32, 1.0).duration(0.3).build(),
+            0.3,
+            At::Offset(0.2),
+        );
 
         // "b" should start at 0.0 + 0.5 + 0.2 = 0.7
         assert!(
@@ -783,11 +999,15 @@ mod tests {
 
     #[test]
     fn at_offset_negative_overlaps() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(1.0).build(), 0.0);
         tl.entries[0].duration = 1.0;
 
-        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5, At::Offset(-0.3));
+        tl.add_at(
+            "b",
+            Tween::new(0.0_f32, 1.0).duration(0.5).build(),
+            0.5,
+            At::Offset(-0.3),
+        );
 
         // "b" should start at 0.0 + 1.0 - 0.3 = 0.7
         assert!(
@@ -799,10 +1019,14 @@ mod tests {
 
     #[test]
     fn at_label_unknown_falls_back_to_zero() {
-        let mut tl = Timeline::new()
-            .add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5);
+        let mut tl = Timeline::new().add("a", Tween::new(0.0_f32, 1.0).duration(0.5).build(), 0.5);
 
-        tl.add_at("b", Tween::new(0.0_f32, 1.0).duration(0.3).build(), 0.3, At::Label("nonexistent"));
+        tl.add_at(
+            "b",
+            Tween::new(0.0_f32, 1.0).duration(0.3).build(),
+            0.3,
+            At::Label("nonexistent"),
+        );
 
         assert!(
             (tl.entries[1].start_at - 0.0).abs() < 1e-6,

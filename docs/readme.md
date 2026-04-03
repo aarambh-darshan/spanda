@@ -55,7 +55,7 @@ Add `spanda` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-spanda = "0.9.1"
+spanda = "0.9.2"
 ```
 
 ### Basic Tween
@@ -233,7 +233,7 @@ assert_eq!(driver.active_count(), 0); // completed animations are auto-removed
 |------|-------------|----------|
 | `std` | *(default)* Wall-clock driver, thread-safe `AnimationDriverArc` | TUI apps, CLI tools |
 | `serde` | `Serialize`/`Deserialize` on all public types | State persistence, network sync |
-| `bevy` | `SpandaPlugin` for Bevy 0.13 — auto-ticks Tween/Spring components | Game development |
+| `bevy` | `SpandaPlugin` for Bevy 0.18 — auto-ticks Tween/Spring components | Game development |
 | `wasm` | `RafDriver` for browser `requestAnimationFrame` | Web apps (Leptos/Dioxus/Yew) |
 | `wasm-dom` | DOM plugins: FLIP, SplitText, ScrollSmoother, Draggable, Observer | Web apps with DOM interaction |
 | `palette` | Colour interpolation via the `palette` crate | Smooth colour animations |

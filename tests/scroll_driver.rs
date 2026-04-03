@@ -43,7 +43,11 @@ fn scroll_clock_drives_tween_directly() {
     let dt = clock.delta();
     tween.update(dt);
 
-    assert!((tween.value() - 50.0).abs() < 1e-4, "Expected ~50, got {}", tween.value());
+    assert!(
+        (tween.value() - 50.0).abs() < 1e-4,
+        "Expected ~50, got {}",
+        tween.value()
+    );
 }
 
 #[test]
@@ -75,5 +79,9 @@ fn scroll_clock_incremental_scrolling() {
     }
 
     assert!(tween.is_complete());
-    assert!((tween.value() - 100.0).abs() < 1e-4, "Expected 100, got {}", tween.value());
+    assert!(
+        (tween.value() - 100.0).abs() < 1e-4,
+        "Expected 100, got {}",
+        tween.value()
+    );
 }

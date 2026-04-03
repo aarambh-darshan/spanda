@@ -26,7 +26,11 @@
 //! ```
 
 #[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
+#[cfg(not(feature = "std"))]
+use alloc::vec::{self, Vec};
 
 use crate::bezier::{CatmullRomSpline, PathEvaluate2D, tangent_angle};
 
@@ -154,8 +158,7 @@ impl PolyPath {
     /// Create a smooth path through the given points.
     pub fn from_points(points: Vec<[f32; 2]>) -> Self {
         let spline = CatmullRomSpline::new(points);
-        let arc_table =
-            ArcLengthTable::build(|t| spline.evaluate([0.0, 0.0], t), ARC_LEN_SAMPLES);
+        let arc_table = ArcLengthTable::build(|t| spline.evaluate([0.0, 0.0], t), ARC_LEN_SAMPLES);
         Self {
             spline,
             arc_table,
@@ -171,8 +174,7 @@ impl PolyPath {
     /// higher values create more exaggerated curves.
     pub fn from_points_with_tension(points: Vec<[f32; 2]>, tension: f32) -> Self {
         let spline = CatmullRomSpline::new(points).tension(tension);
-        let arc_table =
-            ArcLengthTable::build(|t| spline.evaluate([0.0, 0.0], t), ARC_LEN_SAMPLES);
+        let arc_table = ArcLengthTable::build(|t| spline.evaluate([0.0, 0.0], t), ARC_LEN_SAMPLES);
         Self {
             spline,
             arc_table,
@@ -245,6 +247,70 @@ impl PolyPath {
     /// Auto-rotation angle in degrees at progress `u`, including offset.
     pub fn rotation_deg(&self, u: f32) -> f32 {
         self.rotation(u).to_degrees()
+    }
+
+    /// Get relative position along the path for a world-space point.
+    ///
+    /// Returns the progress value `u ∈ [0, 1]` for the point on the path
+    /// closest to the given world position. Useful for determining how far
+    /// along the path an object is.
+    ///
+    /// GSAP equivalent: `MotionPathPlugin.getRelativePosition()`
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use spanda::motion_path::PolyPath;
+    ///
+    /// let path = PolyPath::from_points(vec![
+    ///     [0.0, 0.0],
+    ///     [100.0, 0.0],
+    ///     [200.0, 0.0],
+    /// ]);
+    ///
+    /// // Point at [100, 0] should be ~50% along the path
+    /// let progress = path.get_relative_position([100.0, 0.0]);
+    /// assert!((progress - 0.5).abs() < 0.1);
+    /// ```
+    pub fn get_relative_position(&self, point: [f32; 2]) -> f32 {
+        self.get_relative_position_with_precision(point, 100)
+    }
+
+    /// Get relative position with custom sample precision.
+    ///
+    /// Higher sample count gives more accurate results but is slower.
+    pub fn get_relative_position_with_precision(&self, point: [f32; 2], samples: usize) -> f32 {
+        let samples = samples.max(2);
+        let mut best_u = 0.0_f32;
+        let mut best_dist_sq = f32::MAX;
+
+        for i in 0..=samples {
+            let u = i as f32 / samples as f32;
+            let p = self.position(u);
+            let dx = p[0] - point[0];
+            let dy = p[1] - point[1];
+            let dist_sq = dx * dx + dy * dy;
+
+            if dist_sq < best_dist_sq {
+                best_dist_sq = dist_sq;
+                best_u = u;
+            }
+        }
+
+        best_u
+    }
+
+    /// Get the distance from a point to the closest point on the path.
+    ///
+    /// Returns a tuple of (progress, distance) where progress is `u ∈ [0, 1]`
+    /// and distance is the Euclidean distance.
+    pub fn closest_point(&self, point: [f32; 2]) -> (f32, f32) {
+        let u = self.get_relative_position(point);
+        let p = self.position(u);
+        let dx = p[0] - point[0];
+        let dy = p[1] - point[1];
+        let dist = (dx * dx + dy * dy).sqrt();
+        (u, dist)
     }
 }
 
@@ -561,6 +627,48 @@ impl CompoundPath {
     pub fn rotation_deg(&self, u: f32) -> f32 {
         self.rotation(u).to_degrees()
     }
+
+    /// Get relative position along the path for a world-space point.
+    ///
+    /// Returns the progress value `u ∈ [0, 1]` for the point on the path
+    /// closest to the given world position.
+    ///
+    /// GSAP equivalent: `MotionPathPlugin.getRelativePosition()`
+    pub fn get_relative_position(&self, point: [f32; 2]) -> f32 {
+        self.get_relative_position_with_precision(point, 100)
+    }
+
+    /// Get relative position with custom sample precision.
+    pub fn get_relative_position_with_precision(&self, point: [f32; 2], samples: usize) -> f32 {
+        let samples = samples.max(2);
+        let mut best_u = 0.0_f32;
+        let mut best_dist_sq = f32::MAX;
+
+        for i in 0..=samples {
+            let u = i as f32 / samples as f32;
+            let p = self.position(u);
+            let dx = p[0] - point[0];
+            let dy = p[1] - point[1];
+            let dist_sq = dx * dx + dy * dy;
+
+            if dist_sq < best_dist_sq {
+                best_dist_sq = dist_sq;
+                best_u = u;
+            }
+        }
+
+        best_u
+    }
+
+    /// Get the distance from a point to the closest point on the path.
+    pub fn closest_point(&self, point: [f32; 2]) -> (f32, f32) {
+        let u = self.get_relative_position(point);
+        let p = self.position(u);
+        let dx = p[0] - point[0];
+        let dy = p[1] - point[1];
+        let dist = (dx * dx + dy * dy).sqrt();
+        (u, dist)
+    }
 }
 
 impl core::fmt::Debug for CompoundPath {
@@ -579,31 +687,29 @@ impl core::fmt::Debug for CompoundPath {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(feature = "std"))]
+    use alloc::{format, string::String, vec, vec::Vec};
 
     // ── PolyPath tests ─────────────────────────────────────────────────────
 
     #[test]
     fn polypath_basic_endpoints() {
-        let path = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-            [200.0, 0.0],
-        ]);
+        let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0], [200.0, 0.0]]);
 
         let start = path.position(0.0);
         let end = path.position(1.0);
         assert!((start[0]).abs() < 1.0, "Expected x~0, got {}", start[0]);
-        assert!((end[0] - 200.0).abs() < 1.0, "Expected x~200, got {}", end[0]);
+        assert!(
+            (end[0] - 200.0).abs() < 1.0,
+            "Expected x~200, got {}",
+            end[0]
+        );
     }
 
     #[test]
     fn polypath_constant_speed() {
         // Straight horizontal path
-        let path = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-            [200.0, 0.0],
-        ]);
+        let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0], [200.0, 0.0]]);
 
         // Arc-length parameterized: u=0.25 should give x~50
         let quarter = path.position(0.25);
@@ -616,10 +722,7 @@ mod tests {
 
     #[test]
     fn polypath_start_offset() {
-        let path = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-        ]).start_offset(0.5);
+        let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0]]).start_offset(0.5);
 
         // u=0 should start at 50% of the path
         let start = path.position(0.0);
@@ -632,10 +735,7 @@ mod tests {
 
     #[test]
     fn polypath_end_offset() {
-        let path = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-        ]).end_offset(0.5);
+        let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0]]).end_offset(0.5);
 
         // u=1.0 should be at 50% of the path
         let end = path.position(1.0);
@@ -648,10 +748,7 @@ mod tests {
 
     #[test]
     fn polypath_rotation() {
-        let path = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-        ]);
+        let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0]]);
 
         // Horizontal path should give ~0 degree rotation
         let rot = path.rotation_deg(0.5);
@@ -660,10 +757,7 @@ mod tests {
 
     #[test]
     fn polypath_rotation_offset() {
-        let path = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [100.0, 0.0],
-        ]).rotation_offset(90.0);
+        let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0]]).rotation_offset(90.0);
 
         // Horizontal path + 90° offset = ~90°
         let rot = path.rotation_deg(0.5);
@@ -672,27 +766,20 @@ mod tests {
 
     #[test]
     fn polypath_with_tension() {
-        let normal = PolyPath::from_points(vec![
-            [0.0, 0.0],
-            [50.0, 100.0],
-            [100.0, 0.0],
-        ]);
+        let normal = PolyPath::from_points(vec![[0.0, 0.0], [50.0, 100.0], [100.0, 0.0]]);
 
-        let high = PolyPath::from_points_with_tension(
-            vec![
-                [0.0, 0.0],
-                [50.0, 100.0],
-                [100.0, 0.0],
-            ],
-            1.5,
-        );
+        let high =
+            PolyPath::from_points_with_tension(vec![[0.0, 0.0], [50.0, 100.0], [100.0, 0.0]], 1.5);
 
         // Different tension should produce different positions
         let p1 = normal.position(0.25);
         let p2 = high.position(0.25);
         // They may differ in y due to different control points
         let diff = ((p1[0] - p2[0]).powi(2) + (p1[1] - p2[1]).powi(2)).sqrt();
-        assert!(diff > 0.1, "Different tensions should produce different paths");
+        assert!(
+            diff > 0.1,
+            "Different tensions should produce different paths"
+        );
     }
 
     // ── CompoundPath tests ─────────────────────────────────────────────────
@@ -807,7 +894,10 @@ mod tests {
         ]);
 
         let rot = path.rotation_deg(0.5);
-        assert!((rot - 90.0).abs() < 1.0, "Expected ~90deg for upward path, got {rot}");
+        assert!(
+            (rot - 90.0).abs() < 1.0,
+            "Expected ~90deg for upward path, got {rot}"
+        );
     }
 
     #[test]

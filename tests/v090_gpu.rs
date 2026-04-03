@@ -23,8 +23,16 @@ fn gpu_batch_cpu_fallback_basic() {
     let results = batch.read_back();
     assert_eq!(results.len(), 2);
     // Linear easing at t=0.5 → 50%
-    assert!((results[0] - 50.0).abs() < 1.0, "results[0] = {}", results[0]);
-    assert!((results[1] - 30.0).abs() < 1.0, "results[1] = {}", results[1]);
+    assert!(
+        (results[0] - 50.0).abs() < 1.0,
+        "results[0] = {}",
+        results[0]
+    );
+    assert!(
+        (results[1] - 30.0).abs() < 1.0,
+        "results[1] = {}",
+        results[1]
+    );
 }
 
 #[test]
@@ -80,11 +88,7 @@ fn gpu_batch_cpu_matches_individual_tweens() {
 fn gpu_batch_cpu_large_batch() {
     let mut batch = GpuAnimationBatch::new_cpu_fallback();
     for i in 0..5000 {
-        batch.push(
-            Tween::new(0.0_f32, (i as f32) * 2.0)
-                .duration(1.0)
-                .build(),
-        );
+        batch.push(Tween::new(0.0_f32, (i as f32) * 2.0).duration(1.0).build());
     }
 
     batch.tick(1.0);

@@ -1,7 +1,8 @@
 [package]
 name        = "spanda"
-version     = "0.9.1"
-edition     = "2021"
+version     = "0.9.2"
+edition     = "2024"
+rust-version = "1.85"
 description = "A general-purpose animation library for Rust — tweening, keyframes, timelines, and physics."
 license     = "MIT OR Apache-2.0"
 repository  = "https://github.com/aarambh-darshan/spanda"
@@ -26,9 +27,9 @@ gpu      = ["dep:wgpu", "dep:pollster", "dep:bytemuck", "dep:bytemuck_derive", "
 
 [dependencies]
 serde        = { version = "1",    features = ["derive"], optional = true }
-bevy_app     = { version = "0.13", optional = true }
-bevy_ecs     = { version = "0.13", optional = true }
-bevy_time    = { version = "0.13", optional = true }
+bevy_app     = { version = "0.18", optional = true }
+bevy_ecs     = { version = "0.18", optional = true }
+bevy_time    = { version = "0.18", optional = true }
 wasm-bindgen = { version = "0.2",  optional = true }
 js-sys       = { version = "0.3",  optional = true }
 web-sys      = { version = "0.3",  optional = true, features = [
@@ -43,6 +44,7 @@ wgpu         = { version = "24",   optional = true }
 pollster     = { version = "0.4",  optional = true }
 bytemuck     = { version = "1",    optional = true }
 bytemuck_derive = { version = "1", optional = true }
+num-traits = { version = "0.2.19", default-features = false, features = ["libm"] }
 
 [dev-dependencies]
 approx    = "0.5"     # float comparison in tests
@@ -51,6 +53,58 @@ criterion = "0.5"     # benchmarks
 [[bench]]
 name    = "easing_bench"
 harness = false
+
+[[test]]
+name = "colour_interpolation"
+required-features = ["palette"]
+
+[[example]]
+name = "colour_demo"
+required-features = ["palette"]
+
+[[example]]
+name = "bevy_bounce"
+required-features = ["bevy"]
+
+[[example]]
+name = "catmull_rom_demo"
+required-features = ["std"]
+
+[[example]]
+name = "gesture_demo"
+required-features = ["std"]
+
+[[example]]
+name = "gpu_batch_demo"
+required-features = ["gpu"]
+
+[[example]]
+name = "inertia_demo"
+required-features = ["std"]
+
+[[example]]
+name = "morph_demo"
+required-features = ["std"]
+
+[[example]]
+name = "motion_path_demo"
+required-features = ["std"]
+
+[[example]]
+name = "spring_demo"
+required-features = ["std"]
+
+[[example]]
+name = "svg_path_demo"
+required-features = ["std"]
+
+[[example]]
+name = "tui_progress"
+required-features = ["std"]
+
+[[example]]
+name = "tui_spinner"
+required-features = ["std"]
 
 [profile.release]
 opt-level = 3

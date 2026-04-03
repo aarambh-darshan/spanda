@@ -18,7 +18,7 @@ fn forever_loop_runs_many_cycles() {
     assert!(!track.is_complete());
 
     // Value should be oscillating between 0 and 100
-    let v = track.value();
+    let v = track.value().unwrap();
     assert!(v >= -1.0 && v <= 101.0, "Value out of range: {v}");
 }
 
@@ -31,11 +31,8 @@ fn ping_pong_stays_in_range() {
 
     for _ in 0..600 {
         track.update(1.0 / 60.0);
-        let v = track.value();
-        assert!(
-            v >= -1.0 && v <= 101.0,
-            "PingPong value out of range: {v}"
-        );
+        let v = track.value().unwrap();
+        assert!(v >= -1.0 && v <= 101.0, "PingPong value out of range: {v}");
     }
 }
 
@@ -57,6 +54,8 @@ fn times_loop_completes_exactly() {
     }
 
     assert!(track.is_complete());
-    assert!(total_time >= 2.9 && total_time <= 3.1,
-            "Expected ~3.0s, got {total_time}");
+    assert!(
+        total_time >= 2.9 && total_time <= 3.1,
+        "Expected ~3.0s, got {total_time}"
+    );
 }

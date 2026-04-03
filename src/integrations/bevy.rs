@@ -17,15 +17,15 @@
 //! ```
 
 use bevy_app::{App, Plugin, Update};
-use bevy_ecs::prelude::*;
-use bevy_ecs::event::Event;
 use bevy_ecs::component::Component;
+use bevy_ecs::message::{Message, MessageWriter};
+use bevy_ecs::prelude::*;
 use bevy_time::Time;
 
 use crate::spring::Spring;
+use crate::traits::Animatable;
 use crate::traits::Update as SpandaUpdate;
 use crate::tween::Tween;
-use crate::traits::Animatable;
 
 // ── TweenCompleted event ─────────────────────────────────────────────────────
 
@@ -40,7 +40,7 @@ use crate::traits::Animatable;
 ///     }
 /// }
 /// ```
-#[derive(Event)]
+#[derive(Debug, Message)]
 pub struct TweenCompleted {
     /// The entity whose tween just completed.
     pub entity: Entity,
@@ -60,7 +60,7 @@ pub struct TweenCompleted {
 ///     }
 /// }
 /// ```
-#[derive(Event)]
+#[derive(Debug, Message)]
 pub struct SpringSettled {
     /// The entity whose spring just settled.
     pub entity: Entity,
@@ -103,12 +103,13 @@ impl AnimationLabel {
 /// - `spanda_tick_spring` system — ticks all `Spring` components
 /// - `TweenCompleted` event — fires when a tween finishes
 /// - `SpringSettled` event — fires when a spring reaches its target
+#[derive(Debug)]
 pub struct SpandaPlugin;
 
 impl Plugin for SpandaPlugin {
     fn build(&self, app: &mut App) {
-        app.add_event::<TweenCompleted>()
-            .add_event::<SpringSettled>()
+        app.add_message::<TweenCompleted>()
+            .add_message::<SpringSettled>()
             .add_systems(
                 Update,
                 (
@@ -128,14 +129,14 @@ impl Plugin for SpandaPlugin {
 fn spanda_tick_tween<T: Animatable + Send + Sync>(
     time: Res<Time>,
     mut query: Query<(Entity, &mut Tween<T>)>,
-    mut events: EventWriter<TweenCompleted>,
+    mut events: MessageWriter<TweenCompleted>,
 ) {
-    let dt = time.delta_seconds();
+    let dt = time.delta_secs();
     for (entity, mut tween) in query.iter_mut() {
         let was_complete = tween.is_complete();
         tween.update(dt);
         if !was_complete && tween.is_complete() {
-            events.send(TweenCompleted { entity });
+            events.write(TweenCompleted { entity });
         }
     }
 }
@@ -144,14 +145,14 @@ fn spanda_tick_tween<T: Animatable + Send + Sync>(
 fn spanda_tick_spring(
     time: Res<Time>,
     mut query: Query<(Entity, &mut Spring)>,
-    mut events: EventWriter<SpringSettled>,
+    mut events: MessageWriter<SpringSettled>,
 ) {
-    let dt = time.delta_seconds();
+    let dt = time.delta_secs();
     for (entity, mut spring) in query.iter_mut() {
         let was_settled = spring.is_settled();
         spring.update(dt);
         if !was_settled && spring.is_settled() {
-            events.send(SpringSettled { entity });
+            events.write(SpringSettled { entity });
         }
     }
 }

@@ -34,12 +34,7 @@ use crate::traits::Update;
 use crate::tween::Tween;
 
 #[cfg(not(feature = "std"))]
-use alloc::{
-    collections::BTreeMap as HashMap,
-    string::String,
-    vec::Vec,
-    format,
-};
+use alloc::{collections::BTreeMap as HashMap, format, string::String, vec::Vec};
 
 #[cfg(feature = "std")]
 use std::collections::HashMap;
@@ -62,12 +57,22 @@ pub struct Rect {
 impl Rect {
     /// Create a new rect.
     pub fn new(x: f32, y: f32, width: f32, height: f32) -> Self {
-        Self { x, y, width, height }
+        Self {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     /// Zero-sized rect at origin.
     pub fn zero() -> Self {
-        Self { x: 0.0, y: 0.0, width: 0.0, height: 0.0 }
+        Self {
+            x: 0.0,
+            y: 0.0,
+            width: 0.0,
+            height: 0.0,
+        }
     }
 
     /// Capture a DOM element's bounding rect.
@@ -110,14 +115,34 @@ impl LayoutAnimation {
     fn from_rects(first: &Rect, last: &Rect, duration: f32, easing: Easing) -> Self {
         let dx = first.x - last.x;
         let dy = first.y - last.y;
-        let sx = if last.width > 0.0 { first.width / last.width } else { 1.0 };
-        let sy = if last.height > 0.0 { first.height / last.height } else { 1.0 };
+        let sx = if last.width > 0.0 {
+            first.width / last.width
+        } else {
+            1.0
+        };
+        let sy = if last.height > 0.0 {
+            first.height / last.height
+        } else {
+            1.0
+        };
 
         Self {
-            translate_x: Tween::new(dx, 0.0).duration(duration).easing(easing.clone()).build(),
-            translate_y: Tween::new(dy, 0.0).duration(duration).easing(easing.clone()).build(),
-            scale_x: Tween::new(sx, 1.0).duration(duration).easing(easing.clone()).build(),
-            scale_y: Tween::new(sy, 1.0).duration(duration).easing(easing).build(),
+            translate_x: Tween::new(dx, 0.0)
+                .duration(duration)
+                .easing(easing.clone())
+                .build(),
+            translate_y: Tween::new(dy, 0.0)
+                .duration(duration)
+                .easing(easing.clone())
+                .build(),
+            scale_x: Tween::new(sx, 1.0)
+                .duration(duration)
+                .easing(easing.clone())
+                .build(),
+            scale_y: Tween::new(sy, 1.0)
+                .duration(duration)
+                .easing(easing)
+                .build(),
         }
     }
 
@@ -277,10 +302,12 @@ impl LayoutAnimator {
                 let dh = (old_rect.height - new_rect.height).abs();
 
                 if dx > 0.5 || dy > 0.5 || dw > 0.5 || dh > 0.5 {
-                    let anim = LayoutAnimation::from_rects(old_rect, &new_rect, duration, easing.clone());
-                    self.animations.insert(id.into(), LayoutAnimation::from_rects(
-                        old_rect, &new_rect, duration, easing.clone()
-                    ));
+                    let anim =
+                        LayoutAnimation::from_rects(old_rect, &new_rect, duration, easing.clone());
+                    self.animations.insert(
+                        id.into(),
+                        LayoutAnimation::from_rects(old_rect, &new_rect, duration, easing.clone()),
+                    );
                     transitions.push(LayoutTransition {
                         id: id.into(),
                         animation: anim,
@@ -345,9 +372,10 @@ impl LayoutAnimator {
         );
         let anim = LayoutAnimation::from_rects(&from, &target_rect, duration, easing.clone());
         self.tracked.insert(id.into(), target_rect);
-        self.animations.insert(id.into(), LayoutAnimation::from_rects(
-            &from, &target_rect, duration, easing
-        ));
+        self.animations.insert(
+            id.into(),
+            LayoutAnimation::from_rects(&from, &target_rect, duration, easing),
+        );
         anim
     }
 
@@ -365,10 +393,22 @@ impl LayoutAnimator {
         let cx = old_rect.width * 0.5;
         let cy = old_rect.height * 0.5;
         let anim = LayoutAnimation {
-            translate_x: Tween::new(0.0, cx).duration(duration).easing(easing.clone()).build(),
-            translate_y: Tween::new(0.0, cy).duration(duration).easing(easing.clone()).build(),
-            scale_x: Tween::new(1.0, 0.0).duration(duration).easing(easing.clone()).build(),
-            scale_y: Tween::new(1.0, 0.0).duration(duration).easing(easing).build(),
+            translate_x: Tween::new(0.0, cx)
+                .duration(duration)
+                .easing(easing.clone())
+                .build(),
+            translate_y: Tween::new(0.0, cy)
+                .duration(duration)
+                .easing(easing.clone())
+                .build(),
+            scale_x: Tween::new(1.0, 0.0)
+                .duration(duration)
+                .easing(easing.clone())
+                .build(),
+            scale_y: Tween::new(1.0, 0.0)
+                .duration(duration)
+                .easing(easing)
+                .build(),
         };
         Some(anim)
     }
@@ -529,7 +569,12 @@ mod tests {
     #[test]
     fn layout_animator_enter() {
         let mut la = LayoutAnimator::new();
-        let anim = la.animate_enter("new-el", Rect::new(50.0, 50.0, 100.0, 100.0), 0.3, Easing::Linear);
+        let anim = la.animate_enter(
+            "new-el",
+            Rect::new(50.0, 50.0, 100.0, 100.0),
+            0.3,
+            Easing::Linear,
+        );
         // Scale starts from 0 — initial scale_x and scale_y at t=0
         let (_, _, sx, sy) = anim.transform();
         assert!((sx).abs() < 0.01, "sx={sx}");

@@ -244,7 +244,7 @@ commands.spawn((
 ));
 
 // Listen for settled events
-fn on_rest(mut events: EventReader<SpringSettled>) {
+fn on_rest(mut events: MessageReader<SpringSettled>) {
     for ev in events.read() {
         println!("Spring on {:?} settled", ev.entity);
     }

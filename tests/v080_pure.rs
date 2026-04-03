@@ -25,9 +25,7 @@ fn draw_on_full_lifecycle() {
 
 #[test]
 fn draw_on_reverse_full_lifecycle() {
-    let mut tween = spanda::draw_on_reverse(200.0)
-        .duration(0.5)
-        .build();
+    let mut tween = spanda::draw_on_reverse(200.0).duration(0.5).build();
 
     tween.update(0.5);
     assert!((tween.value() - 200.0).abs() < 1e-6);
@@ -37,11 +35,12 @@ fn draw_on_reverse_full_lifecycle() {
 
 #[test]
 fn morph_path_lifecycle() {
-    let circle = vec![
-        [100.0, 0.0], [0.0, 100.0], [-100.0, 0.0], [0.0, -100.0],
-    ];
+    let circle = vec![[100.0, 0.0], [0.0, 100.0], [-100.0, 0.0], [0.0, -100.0]];
     let square = vec![
-        [100.0, 100.0], [-100.0, 100.0], [-100.0, -100.0], [100.0, -100.0],
+        [100.0, 100.0],
+        [-100.0, 100.0],
+        [-100.0, -100.0],
+        [100.0, -100.0],
     ];
 
     let mut morph = spanda::MorphPath::new(circle, square)
@@ -69,9 +68,7 @@ fn morph_with_resample() {
     let from = vec![[0.0, 0.0], [100.0, 0.0]];
     let to = vec![[0.0, 0.0], [50.0, 50.0], [100.0, 0.0], [150.0, -50.0]];
 
-    let morph = spanda::MorphPath::new(from, to)
-        .duration(1.0)
-        .build();
+    let morph = spanda::MorphPath::new(from, to).duration(1.0).build();
 
     // Auto-resampled to 4 points
     assert_eq!(morph.value().len(), 4);
@@ -88,7 +85,9 @@ fn inertia_settles() {
     let mut frames = 0u32;
     while inertia.update(1.0 / 60.0) {
         frames += 1;
-        if frames > 10000 { panic!("inertia never settled"); }
+        if frames > 10000 {
+            panic!("inertia never settled");
+        }
     }
 
     assert!(inertia.is_settled());
@@ -98,10 +97,8 @@ fn inertia_settles() {
 
 #[test]
 fn inertia_n_2d_settles() {
-    let mut inertia = spanda::InertiaN::new(
-        spanda::InertiaConfig::default_flick(),
-        [0.0_f32, 0.0],
-    ).with_velocity([500.0, -300.0]);
+    let mut inertia = spanda::InertiaN::new(spanda::InertiaConfig::default_flick(), [0.0_f32, 0.0])
+        .with_velocity([500.0, -300.0]);
 
     while inertia.update(1.0 / 60.0) {}
 
@@ -138,11 +135,28 @@ fn drag_to_inertia_flow() {
 #[test]
 fn all_new_easings_endpoints_lifecycle() {
     let variants: Vec<Easing> = vec![
-        Easing::RoughEase { strength: 0.3, points: 20, seed: 1 },
-        Easing::SlowMo { ratio: 0.5, power: 0.7, yoyo_mode: false },
-        Easing::ExpoScale { start_scale: 1.0, end_scale: 100.0 },
-        Easing::Wiggle { frequency: 3.0, amplitude: 0.2 },
-        Easing::CustomBounce { strength: 0.5, squash: 0.3 },
+        Easing::RoughEase {
+            strength: 0.3,
+            points: 20,
+            seed: 1,
+        },
+        Easing::SlowMo {
+            ratio: 0.5,
+            power: 0.7,
+            yoyo_mode: false,
+        },
+        Easing::ExpoScale {
+            start_scale: 1.0,
+            end_scale: 100.0,
+        },
+        Easing::Wiggle {
+            frequency: 3.0,
+            amplitude: 0.2,
+        },
+        Easing::CustomBounce {
+            strength: 0.5,
+            squash: 0.3,
+        },
     ];
 
     for easing in &variants {
@@ -156,11 +170,28 @@ fn all_new_easings_endpoints_lifecycle() {
 #[test]
 fn new_easings_work_in_tweens() {
     let variants: Vec<Easing> = vec![
-        Easing::RoughEase { strength: 0.2, points: 10, seed: 42 },
-        Easing::SlowMo { ratio: 0.3, power: 0.5, yoyo_mode: false },
-        Easing::ExpoScale { start_scale: 1.0, end_scale: 10.0 },
-        Easing::Wiggle { frequency: 2.0, amplitude: 0.1 },
-        Easing::CustomBounce { strength: 0.5, squash: 0.0 },
+        Easing::RoughEase {
+            strength: 0.2,
+            points: 10,
+            seed: 42,
+        },
+        Easing::SlowMo {
+            ratio: 0.3,
+            power: 0.5,
+            yoyo_mode: false,
+        },
+        Easing::ExpoScale {
+            start_scale: 1.0,
+            end_scale: 10.0,
+        },
+        Easing::Wiggle {
+            frequency: 2.0,
+            amplitude: 0.1,
+        },
+        Easing::CustomBounce {
+            strength: 0.5,
+            squash: 0.0,
+        },
     ];
 
     for easing in variants {

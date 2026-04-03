@@ -2,7 +2,7 @@
 //! CatmullRomSpline, PolyPath, CompoundPath, SvgPathParser.
 
 use spanda::bezier::{CatmullRomSpline, PathEvaluate2D, tangent_angle_deg};
-use spanda::motion_path::{PolyPath, CompoundPath, PathCommand};
+use spanda::motion_path::{CompoundPath, PathCommand, PolyPath};
 use spanda::svg_path::SvgPathParser;
 
 // ── CatmullRomSpline ──────────────────────────────────────────────────────
@@ -25,16 +25,17 @@ fn catmull_rom_smooth_path_through_points() {
 
     // Passes through middle knot at t=0.5 (3rd of 5 points, segment 2 of 4)
     let mid = spline.evaluate([0.0, 0.0], 0.5);
-    assert!((mid[0] - 100.0).abs() < 1.0, "Expected x~100 at midpoint, got {}", mid[0]);
+    assert!(
+        (mid[0] - 100.0).abs() < 1.0,
+        "Expected x~100 at midpoint, got {}",
+        mid[0]
+    );
 }
 
 #[test]
 fn catmull_rom_tangent_direction() {
     // Upward path: tangent should point positive y
-    let spline = CatmullRomSpline::new(vec![
-        [0.0, 0.0],
-        [0.0, 100.0],
-    ]);
+    let spline = CatmullRomSpline::new(vec![[0.0, 0.0], [0.0, 100.0]]);
 
     let tan = spline.tangent([0.0, 0.0], 0.5);
     assert!(tan[1] > 0.0, "Expected positive y tangent for upward path");
@@ -57,12 +58,7 @@ fn tangent_angle_helpers() {
 #[test]
 fn polypath_arc_length_parameterization() {
     // Straight horizontal path: arc-length = parametric (already uniform)
-    let path = PolyPath::from_points(vec![
-        [0.0, 0.0],
-        [100.0, 0.0],
-        [200.0, 0.0],
-        [300.0, 0.0],
-    ]);
+    let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0], [200.0, 0.0], [300.0, 0.0]]);
 
     // Arc length should be ~300
     assert!((path.arc_length() - 300.0).abs() < 5.0);
@@ -74,37 +70,40 @@ fn polypath_arc_length_parameterization() {
 
 #[test]
 fn polypath_offsets_restrict_range() {
-    let path = PolyPath::from_points(vec![
-        [0.0, 0.0],
-        [200.0, 0.0],
-    ])
-    .start_offset(0.25)
-    .end_offset(0.75);
+    let path = PolyPath::from_points(vec![[0.0, 0.0], [200.0, 0.0]])
+        .start_offset(0.25)
+        .end_offset(0.75);
 
     let start = path.position(0.0);
     let end = path.position(1.0);
 
     // Should traverse only the middle 50% of the path
-    assert!(start[0] > 30.0, "start_offset should skip beginning: {}", start[0]);
+    assert!(
+        start[0] > 30.0,
+        "start_offset should skip beginning: {}",
+        start[0]
+    );
     assert!(end[0] < 170.0, "end_offset should stop early: {}", end[0]);
 }
 
 #[test]
 fn polypath_auto_rotate() {
     // Path going right then up
-    let path = PolyPath::from_points(vec![
-        [0.0, 0.0],
-        [100.0, 0.0],
-        [100.0, 100.0],
-    ]);
+    let path = PolyPath::from_points(vec![[0.0, 0.0], [100.0, 0.0], [100.0, 100.0]]);
 
     // Near start: heading right (~0 degrees)
     let rot_start = path.rotation_deg(0.05);
-    assert!(rot_start.abs() < 30.0, "Near start should be ~0 deg, got {rot_start}");
+    assert!(
+        rot_start.abs() < 30.0,
+        "Near start should be ~0 deg, got {rot_start}"
+    );
 
     // Near end: heading up (~90 degrees)
     let rot_end = path.rotation_deg(0.95);
-    assert!((rot_end - 90.0).abs() < 30.0, "Near end should be ~90 deg, got {rot_end}");
+    assert!(
+        (rot_end - 90.0).abs() < 30.0,
+        "Near end should be ~90 deg, got {rot_end}"
+    );
 }
 
 // ── CompoundPath ──────────────────────────────────────────────────────────
@@ -130,7 +129,11 @@ fn compound_path_mixed_segments() {
 
     // Cubic part should curve above y=0
     let quarter = path.position(0.25);
-    assert!(quarter[1] > 5.0, "Cubic segment should curve up, got y={}", quarter[1]);
+    assert!(
+        quarter[1] > 5.0,
+        "Cubic segment should curve up, got y={}",
+        quarter[1]
+    );
 }
 
 #[test]
@@ -146,8 +149,16 @@ fn compound_path_closed_triangle() {
 
     // End should return to start
     let end = path.position(1.0);
-    assert!((end[0]).abs() < 2.0, "Should close near origin, got x={}", end[0]);
-    assert!((end[1]).abs() < 2.0, "Should close near origin, got y={}", end[1]);
+    assert!(
+        (end[0]).abs() < 2.0,
+        "Should close near origin, got x={}",
+        end[0]
+    );
+    assert!(
+        (end[1]).abs() < 2.0,
+        "Should close near origin, got y={}",
+        end[1]
+    );
 }
 
 // ── SvgPathParser ─────────────────────────────────────────────────────────
@@ -178,9 +189,7 @@ fn svg_path_relative_commands() {
 #[test]
 fn svg_path_with_offsets() {
     let cmds = SvgPathParser::parse("M 0 0 L 100 0 L 200 0 L 300 0");
-    let path = CompoundPath::new(cmds)
-        .start_offset(0.25)
-        .end_offset(0.75);
+    let path = CompoundPath::new(cmds).start_offset(0.25).end_offset(0.75);
 
     let start = path.position(0.0);
     let end = path.position(1.0);
@@ -197,15 +206,18 @@ fn svg_path_with_auto_rotate() {
 
     let rot = path.rotation_deg(0.05);
     // Near start heading right: tangent ~0° + offset 45° = ~45°
-    assert!((rot - 45.0).abs() < 15.0, "Expected ~45 deg with offset, got {rot}");
+    assert!(
+        (rot - 45.0).abs() < 15.0,
+        "Expected ~45 deg with offset, got {rot}"
+    );
 }
 
 // ── Easing: CubicBezier and Steps ─────────────────────────────────────────
 
 #[test]
 fn cubic_bezier_easing_with_tween() {
-    use spanda::{Tween, Easing};
     use spanda::traits::Update;
+    use spanda::{Easing, Tween};
 
     let mut tween = Tween::new(0.0_f32, 100.0)
         .duration(1.0)
@@ -222,8 +234,8 @@ fn cubic_bezier_easing_with_tween() {
 
 #[test]
 fn steps_easing_with_tween() {
-    use spanda::{Tween, Easing};
     use spanda::traits::Update;
+    use spanda::{Easing, Tween};
 
     let mut tween = Tween::new(0.0_f32, 100.0)
         .duration(1.0)
@@ -233,5 +245,8 @@ fn steps_easing_with_tween() {
     // At t=0.3, steps(4) -> step 1/4 = 25.0
     tween.update(0.3);
     let val = tween.value();
-    assert!((val - 25.0).abs() < 1e-3, "Expected 25 at t=0.3 with Steps(4), got {val}");
+    assert!(
+        (val - 25.0).abs() < 1e-3,
+        "Expected 25 at t=0.3 with Steps(4), got {val}"
+    );
 }

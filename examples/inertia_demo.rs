@@ -3,7 +3,7 @@
 //! Demonstrates the Inertia struct decelerating from a velocity impulse.
 //! Run with: cargo run --example inertia_demo
 
-use spanda::inertia::{Inertia, InertiaN, InertiaConfig};
+use spanda::inertia::{Inertia, InertiaConfig, InertiaN};
 use spanda::traits::Update;
 
 fn main() {
@@ -12,8 +12,8 @@ fn main() {
     // ── 1D inertia with different presets ────────────────────────────
     let presets = [
         ("default_flick", InertiaConfig::default_flick()),
-        ("heavy",         InertiaConfig::heavy()),
-        ("snappy",        InertiaConfig::snappy()),
+        ("heavy", InertiaConfig::heavy()),
+        ("snappy", InertiaConfig::snappy()),
     ];
 
     for (name, config) in &presets {
@@ -31,7 +31,11 @@ fn main() {
                 let bar: String = (0..40)
                     .map(|i| if i == bar_pos { '#' } else { '.' })
                     .collect();
-                print!("\r{name:14} | {bar} pos={:7.1} vel={:7.1}", inertia.position(), inertia.velocity());
+                print!(
+                    "\r{name:14} | {bar} pos={:7.1} vel={:7.1}",
+                    inertia.position(),
+                    inertia.velocity()
+                );
             }
         }
 
@@ -44,10 +48,8 @@ fn main() {
     // ── 2D inertia ───────────────────────────────────────────────────
     println!("\n--- 2D Inertia (fling gesture) ---\n");
 
-    let mut inertia2d = InertiaN::new(
-        InertiaConfig::default_flick(),
-        [0.0_f32, 0.0],
-    ).with_velocity([600.0, -400.0]);
+    let mut inertia2d = InertiaN::new(InertiaConfig::default_flick(), [0.0_f32, 0.0])
+        .with_velocity([600.0, -400.0]);
 
     println!("  frame |     x     |     y     | settled");
     println!("  ------|-----------|-----------|--------");
@@ -61,12 +63,16 @@ fn main() {
             let pos = inertia2d.position();
             println!(
                 "  {:5} | {:9.2} | {:9.2} | {}",
-                frame, pos[0], pos[1],
+                frame,
+                pos[0],
+                pos[1],
                 if inertia2d.is_settled() { "yes" } else { "no" }
             );
         }
 
-        if !running { break; }
+        if !running {
+            break;
+        }
         if frame > 5000 {
             println!("  (stopped after 5000 frames)");
             break;

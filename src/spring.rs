@@ -40,16 +40,14 @@
 //! assert!((pos[1] - 200.0).abs() < 1.0);
 //! ```
 
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
 use crate::traits::Update;
 
 #[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
-
-#[cfg(feature = "std")]
-use std::vec::Vec;
-
-#[cfg(not(feature = "std"))]
-use alloc::vec;
+use alloc::{format, vec, vec::Vec};
 
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
@@ -296,6 +294,8 @@ pub struct SpringN<T: SpringAnimatable> {
     positions: Vec<f32>,
     /// Per-component velocities.
     velocities: Vec<f32>,
+    /// Target value components (cached to avoid per-frame allocations).
+    target_components: Vec<f32>,
     /// Target value.
     target: T,
     /// Current value (reconstructed from components after each step).
@@ -309,12 +309,14 @@ impl<T: SpringAnimatable> SpringN<T> {
     pub fn new(config: SpringConfig, initial: T) -> Self {
         let components = initial.to_components();
         let n = components.len();
+        let target_components = components.clone();
         let positions = components;
         let velocities = vec![0.0; n];
         Self {
             config,
             positions,
             velocities,
+            target_components,
             target: initial.clone(),
             current: initial,
             settled: true,
@@ -323,6 +325,7 @@ impl<T: SpringAnimatable> SpringN<T> {
 
     /// Set a new target.  The spring immediately begins moving toward it.
     pub fn set_target(&mut self, target: T) {
+        self.target_components = target.to_components();
         self.target = target;
         self.settled = false;
     }
@@ -352,23 +355,30 @@ impl<T: SpringAnimatable> SpringN<T> {
         self.settled
     }
 
-    /// Reset all positions and velocities to zero.
+    /// Reset positions to the current target and zero all velocities.
     pub fn reset(&mut self) {
-        for p in &mut self.positions {
-            *p = 0.0;
-        }
+        self.positions = self.target_components.clone();
         for v in &mut self.velocities {
             *v = 0.0;
         }
-        self.current = T::from_components(&self.positions);
+        self.current = self.target.clone();
+        self.check_settled();
+    }
+
+    /// Reset positions to an explicit value and zero all velocities.
+    pub fn reset_to(&mut self, value: T) {
+        self.positions = value.to_components();
+        for v in &mut self.velocities {
+            *v = 0.0;
+        }
+        self.current = value;
         self.check_settled();
     }
 
     /// Semi-implicit Euler step for all components.
     fn step(&mut self, dt: f32) {
-        let target_components = self.target.to_components();
         for i in 0..self.positions.len() {
-            let displacement = self.positions[i] - target_components[i];
+            let displacement = self.positions[i] - self.target_components[i];
             let acceleration = (-self.config.stiffness * displacement
                 - self.config.damping * self.velocities[i])
                 / self.config.mass;
@@ -379,18 +389,16 @@ impl<T: SpringAnimatable> SpringN<T> {
 
     /// Check if all components are settled.
     fn check_settled(&mut self) {
-        let target_components = self.target.to_components();
         let eps = self.config.epsilon;
         let all_settled = self
             .positions
             .iter()
             .zip(self.velocities.iter())
-            .zip(target_components.iter())
+            .zip(self.target_components.iter())
             .all(|((p, v), t)| (p - t).abs() < eps && v.abs() < eps);
 
         if all_settled {
-            let tc = self.target.to_components();
-            for (i, t) in tc.iter().enumerate() {
+            for (i, t) in self.target_components.iter().enumerate() {
                 self.positions[i] = *t;
                 self.velocities[i] = 0.0;
             }
@@ -412,8 +420,7 @@ impl<T: SpringAnimatable> Update for SpringN<T> {
 
         // Handle degenerate cases
         if self.config.stiffness <= 0.0 {
-            let tc = self.target.to_components();
-            for (i, t) in tc.iter().enumerate() {
+            for (i, t) in self.target_components.iter().enumerate() {
                 self.positions[i] = *t;
                 self.velocities[i] = 0.0;
             }
@@ -442,6 +449,7 @@ impl<T: SpringAnimatable> Clone for SpringN<T> {
             config: self.config.clone(),
             positions: self.positions.clone(),
             velocities: self.velocities.clone(),
+            target_components: self.target_components.clone(),
             target: self.target.clone(),
             current: self.current.clone(),
             settled: self.settled,
@@ -518,6 +526,8 @@ impl SpringAnimatable for [f32; 4] {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(feature = "std"))]
+    use alloc::{format, string::String, vec, vec::Vec};
 
     // ── Spring (f32) tests ───────────────────────────────────────────────
 
@@ -760,8 +770,8 @@ mod tests {
         spring.reset();
 
         let pos = spring.position();
-        assert!((pos[0] - 0.0).abs() < 1e-6);
-        assert!((pos[1] - 0.0).abs() < 1e-6);
+        assert!((pos[0] - 100.0).abs() < 1e-6);
+        assert!((pos[1] - 100.0).abs() < 1e-6);
     }
 
     #[test]

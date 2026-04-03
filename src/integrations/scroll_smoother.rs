@@ -6,8 +6,8 @@
 //!
 //! Requires the `wasm-dom` feature.
 
-use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsCast;
+use wasm_bindgen::prelude::*;
 use web_sys::{Event, HtmlElement};
 
 use crate::spring::{Spring, SpringConfig};
@@ -61,7 +61,10 @@ impl ScrollSmoother {
         }
 
         // Set up the content element for transform-based scrolling
-        let _ = self.content_element.style().set_property("will-change", "transform");
+        let _ = self
+            .content_element
+            .style()
+            .set_property("will-change", "transform");
 
         // Create a shared reference to target_y that the closure can write to.
         // We use a simple approach: store a leaked Box to share state.
@@ -77,7 +80,8 @@ impl ScrollSmoother {
         }) as Box<dyn FnMut(Event)>);
 
         if let Some(win) = web_sys::window() {
-            let _ = win.add_event_listener_with_callback("scroll", closure.as_ref().unchecked_ref());
+            let _ =
+                win.add_event_listener_with_callback("scroll", closure.as_ref().unchecked_ref());
         }
 
         // Store the Rc so tick() can read it
@@ -127,7 +131,8 @@ impl ScrollSmoother {
         self.spring.update(dt);
 
         let y = self.spring.position();
-        let _ = self.content_element
+        let _ = self
+            .content_element
             .style()
             .set_property("transform", &format!("translateY(-{y}px)"));
     }

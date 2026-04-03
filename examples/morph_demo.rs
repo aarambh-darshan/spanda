@@ -3,24 +3,15 @@
 //! Demonstrates MorphPath interpolating between two shapes.
 //! Run with: cargo run --example morph_demo
 
-use spanda::morph::MorphPath;
 use spanda::easing::Easing;
-use spanda::traits::Update;
+use spanda::morph::MorphPath;
 
 fn main() {
     println!("=== spanda MorphPath Demo ===\n");
 
     // Triangle → Square morph
-    let triangle = vec![
-        [20.0, 0.0],
-        [0.0, 40.0],
-        [40.0, 40.0],
-    ];
-    let square = vec![
-        [0.0, 0.0],
-        [0.0, 40.0],
-        [40.0, 40.0],
-    ];
+    let triangle = vec![[20.0, 0.0], [0.0, 40.0], [40.0, 40.0]];
+    let square = vec![[0.0, 0.0], [0.0, 40.0], [40.0, 40.0]];
 
     let mut morph = MorphPath::new(triangle, square)
         .duration(1.0)
@@ -38,10 +29,7 @@ fn main() {
         let pts = morph.value();
         println!(
             "  {:.1}  | ({:5.1}, {:5.1}) | ({:5.1}, {:5.1}) | ({:5.1}, {:5.1})",
-            t,
-            pts[0][0], pts[0][1],
-            pts[1][0], pts[1][1],
-            pts[2][0], pts[2][1],
+            t, pts[0][0], pts[0][1], pts[1][0], pts[1][1], pts[2][0], pts[2][1],
         );
     }
 
@@ -51,9 +39,7 @@ fn main() {
     let few = vec![[0.0, 0.0], [100.0, 100.0]];
     let many = vec![[0.0, 0.0], [30.0, 50.0], [70.0, 50.0], [100.0, 0.0]];
 
-    let morph2 = MorphPath::new(few, many)
-        .duration(1.0)
-        .build();
+    let morph2 = MorphPath::new(few, many).duration(1.0).build();
 
     let pts = morph2.value();
     println!("  2 points auto-resampled to {} points:", pts.len());
@@ -76,7 +62,9 @@ fn main() {
         draw.seek(t);
         let offset = draw.value();
         let drawn_pct = ((path_length - offset) / path_length * 100.0) as usize;
-        let bar: String = (0..50).map(|j| if j < drawn_pct / 2 { '#' } else { '.' }).collect();
+        let bar: String = (0..50)
+            .map(|j| if j < drawn_pct / 2 { '#' } else { '.' })
+            .collect();
         println!("  t={t:.1} offset={offset:6.1} [{bar}]");
     }
 

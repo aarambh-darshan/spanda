@@ -39,7 +39,7 @@ game engines (Bevy), or native desktop apps.
 
 ```toml
 [dependencies]
-spanda = "0.9.1"
+spanda = "0.9.2"
 ```
 
 ### Quick Example
@@ -329,7 +329,7 @@ let positions: &[f32] = batch.read_back();
 |------------|-------------------------------------------------------|
 | `std`      | *(default)* wall-clock driver, thread-safe internals  |
 | `serde`    | `Serialize`/`Deserialize` on all public types         |
-| `bevy`     | `SpandaPlugin` for Bevy 0.13                          |
+| `bevy`     | `SpandaPlugin` for Bevy 0.18                          |
 | `wasm`     | `requestAnimationFrame` driver                        |
 | `wasm-dom` | DOM plugins: FLIP, SplitText, ScrollSmoother, Draggable, Observer |
 | `palette`  | Colour interpolation via the `palette` crate          |

@@ -50,7 +50,11 @@ fn main() {
     // ── GPU (Auto Detection) ─────────────────────────────────────────────
     {
         let mut batch = GpuAnimationBatch::new_auto();
-        let backend = if batch.is_gpu() { "GPU" } else { "CPU (no GPU found)" };
+        let backend = if batch.is_gpu() {
+            "GPU"
+        } else {
+            "CPU (no GPU found)"
+        };
 
         for i in 0..count {
             let end = (i as f32 / count as f32) * 100.0;

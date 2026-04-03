@@ -382,6 +382,191 @@ impl SpringAnimatable for InLinear {
     }
 }
 
+// ── Color Parsing ───────────────────────────────────────────────────────────
+
+/// Error type for color parsing failures.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ParseColorError {
+    /// Invalid hex color format.
+    InvalidHex,
+    /// Unknown named color.
+    UnknownColor,
+}
+
+impl core::fmt::Display for ParseColorError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            ParseColorError::InvalidHex => write!(f, "invalid hex color format"),
+            ParseColorError::UnknownColor => write!(f, "unknown named color"),
+        }
+    }
+}
+
+/// Parse a hex color string to Srgba.
+///
+/// Supports formats:
+/// - `#RGB` (e.g., `#f00` for red)
+/// - `#RGBA` (e.g., `#f00f` for opaque red)
+/// - `#RRGGBB` (e.g., `#ff0000`)
+/// - `#RRGGBBAA` (e.g., `#ff0000ff`)
+///
+/// The `#` prefix is optional.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use spanda::colour::parse_hex;
+///
+/// let red = parse_hex("#ff0000").unwrap();
+/// assert!((red.red - 1.0).abs() < 1e-6);
+/// assert!((red.green - 0.0).abs() < 1e-6);
+/// assert!((red.blue - 0.0).abs() < 1e-6);
+/// ```
+pub fn parse_hex(s: &str) -> Result<Srgba, ParseColorError> {
+    let s = s.trim().trim_start_matches('#');
+
+    let parse_nibble = |c: char| -> Result<u8, ParseColorError> {
+        match c.to_ascii_lowercase() {
+            '0'..='9' => Ok(c as u8 - b'0'),
+            'a'..='f' => Ok(c as u8 - b'a' + 10),
+            _ => Err(ParseColorError::InvalidHex),
+        }
+    };
+
+    let chars: Vec<char> = s.chars().collect();
+
+    match chars.len() {
+        // #RGB
+        3 => {
+            let r = parse_nibble(chars[0])?;
+            let g = parse_nibble(chars[1])?;
+            let b = parse_nibble(chars[2])?;
+            Ok(Srgba::new(
+                (r * 17) as f32 / 255.0,
+                (g * 17) as f32 / 255.0,
+                (b * 17) as f32 / 255.0,
+                1.0,
+            ))
+        }
+        // #RGBA
+        4 => {
+            let r = parse_nibble(chars[0])?;
+            let g = parse_nibble(chars[1])?;
+            let b = parse_nibble(chars[2])?;
+            let a = parse_nibble(chars[3])?;
+            Ok(Srgba::new(
+                (r * 17) as f32 / 255.0,
+                (g * 17) as f32 / 255.0,
+                (b * 17) as f32 / 255.0,
+                (a * 17) as f32 / 255.0,
+            ))
+        }
+        // #RRGGBB
+        6 => {
+            let r = (parse_nibble(chars[0])? << 4) | parse_nibble(chars[1])?;
+            let g = (parse_nibble(chars[2])? << 4) | parse_nibble(chars[3])?;
+            let b = (parse_nibble(chars[4])? << 4) | parse_nibble(chars[5])?;
+            Ok(Srgba::new(
+                r as f32 / 255.0,
+                g as f32 / 255.0,
+                b as f32 / 255.0,
+                1.0,
+            ))
+        }
+        // #RRGGBBAA
+        8 => {
+            let r = (parse_nibble(chars[0])? << 4) | parse_nibble(chars[1])?;
+            let g = (parse_nibble(chars[2])? << 4) | parse_nibble(chars[3])?;
+            let b = (parse_nibble(chars[4])? << 4) | parse_nibble(chars[5])?;
+            let a = (parse_nibble(chars[6])? << 4) | parse_nibble(chars[7])?;
+            Ok(Srgba::new(
+                r as f32 / 255.0,
+                g as f32 / 255.0,
+                b as f32 / 255.0,
+                a as f32 / 255.0,
+            ))
+        }
+        _ => Err(ParseColorError::InvalidHex),
+    }
+}
+
+/// Parse a named color to Srgba.
+///
+/// Supports CSS named colors (lowercase). Returns `Err` for unknown names.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use spanda::colour::parse_named;
+///
+/// let red = parse_named("red").unwrap();
+/// let blue = parse_named("blue").unwrap();
+/// ```
+pub fn parse_named(name: &str) -> Result<Srgba, ParseColorError> {
+    let name = name.trim().to_lowercase();
+    match name.as_str() {
+        // CSS basic colors
+        "black" => Ok(Srgba::new(0.0, 0.0, 0.0, 1.0)),
+        "white" => Ok(Srgba::new(1.0, 1.0, 1.0, 1.0)),
+        "red" => Ok(Srgba::new(1.0, 0.0, 0.0, 1.0)),
+        "green" => Ok(Srgba::new(0.0, 0.5019608, 0.0, 1.0)), // CSS green is #008000
+        "lime" => Ok(Srgba::new(0.0, 1.0, 0.0, 1.0)),
+        "blue" => Ok(Srgba::new(0.0, 0.0, 1.0, 1.0)),
+        "yellow" => Ok(Srgba::new(1.0, 1.0, 0.0, 1.0)),
+        "cyan" | "aqua" => Ok(Srgba::new(0.0, 1.0, 1.0, 1.0)),
+        "magenta" | "fuchsia" => Ok(Srgba::new(1.0, 0.0, 1.0, 1.0)),
+        "gray" | "grey" => Ok(Srgba::new(0.5019608, 0.5019608, 0.5019608, 1.0)),
+        "silver" => Ok(Srgba::new(0.7529412, 0.7529412, 0.7529412, 1.0)),
+        "maroon" => Ok(Srgba::new(0.5019608, 0.0, 0.0, 1.0)),
+        "olive" => Ok(Srgba::new(0.5019608, 0.5019608, 0.0, 1.0)),
+        "purple" => Ok(Srgba::new(0.5019608, 0.0, 0.5019608, 1.0)),
+        "teal" => Ok(Srgba::new(0.0, 0.5019608, 0.5019608, 1.0)),
+        "navy" => Ok(Srgba::new(0.0, 0.0, 0.5019608, 1.0)),
+        // Extended colors
+        "orange" => Ok(Srgba::new(1.0, 0.6470588, 0.0, 1.0)),
+        "pink" => Ok(Srgba::new(1.0, 0.7529412, 0.79607844, 1.0)),
+        "coral" => Ok(Srgba::new(1.0, 0.49803922, 0.3137255, 1.0)),
+        "gold" => Ok(Srgba::new(1.0, 0.84313726, 0.0, 1.0)),
+        "indigo" => Ok(Srgba::new(0.29411766, 0.0, 0.50980395, 1.0)),
+        "violet" => Ok(Srgba::new(0.93333334, 0.50980395, 0.93333334, 1.0)),
+        "brown" => Ok(Srgba::new(0.64705884, 0.16470589, 0.16470589, 1.0)),
+        "tan" => Ok(Srgba::new(0.8235294, 0.7058824, 0.54901963, 1.0)),
+        "beige" => Ok(Srgba::new(0.9607843, 0.9607843, 0.8627451, 1.0)),
+        "ivory" => Ok(Srgba::new(1.0, 1.0, 0.9411765, 1.0)),
+        "khaki" => Ok(Srgba::new(0.9411765, 0.9019608, 0.54901963, 1.0)),
+        "crimson" => Ok(Srgba::new(0.8627451, 0.078431375, 0.23529412, 1.0)),
+        "tomato" => Ok(Srgba::new(1.0, 0.3882353, 0.2784314, 1.0)),
+        "salmon" => Ok(Srgba::new(0.98039216, 0.5019608, 0.44705883, 1.0)),
+        "turquoise" => Ok(Srgba::new(0.2509804, 0.878_431_4, 0.8156863, 1.0)),
+        "skyblue" => Ok(Srgba::new(0.5294118, 0.80784315, 0.92156863, 1.0)),
+        "steelblue" => Ok(Srgba::new(0.27450982, 0.50980395, 0.7058824, 1.0)),
+        "slategray" | "slategrey" => Ok(Srgba::new(0.4392157, 0.5019608, 0.5647059, 1.0)),
+        "transparent" => Ok(Srgba::new(0.0, 0.0, 0.0, 0.0)),
+        _ => Err(ParseColorError::UnknownColor),
+    }
+}
+
+/// Parse a color string (hex or named) to Srgba.
+///
+/// Tries hex parsing first (if starts with #), then named color lookup.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use spanda::colour::parse_color;
+///
+/// let red1 = parse_color("#ff0000").unwrap();
+/// let red2 = parse_color("red").unwrap();
+/// ```
+pub fn parse_color(s: &str) -> Result<Srgba, ParseColorError> {
+    let s = s.trim();
+    if s.starts_with('#') || s.chars().all(|c| c.is_ascii_hexdigit()) {
+        parse_hex(s)
+    } else {
+        parse_named(s)
+    }
+}
+
 // ── Tests ───────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -476,7 +661,10 @@ mod tests {
         let diff = (srgb_mid.red - lab_mid.red).abs()
             + (srgb_mid.green - lab_mid.green).abs()
             + (srgb_mid.blue - lab_mid.blue).abs();
-        assert!(diff > 0.01, "Lab midpoint should differ from sRGB: diff={diff}");
+        assert!(
+            diff > 0.01,
+            "Lab midpoint should differ from sRGB: diff={diff}"
+        );
     }
 
     #[test]
@@ -595,5 +783,90 @@ mod tests {
         assert_eq!(components.len(), 4);
         let rebuilt = InLab::from_components(&components);
         assert!((rebuilt.0.red - 0.2).abs() < 1e-6);
+    }
+
+    // ── Color Parsing ───────────────────────────────────────────────
+
+    #[test]
+    fn parse_hex_6digit() {
+        let red = parse_hex("#ff0000").unwrap();
+        assert!((red.red - 1.0).abs() < 1e-6);
+        assert!((red.green - 0.0).abs() < 1e-6);
+        assert!((red.blue - 0.0).abs() < 1e-6);
+        assert!((red.alpha - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn parse_hex_3digit() {
+        let red = parse_hex("#f00").unwrap();
+        assert!((red.red - 1.0).abs() < 1e-6);
+        assert!((red.green - 0.0).abs() < 1e-6);
+        assert!((red.blue - 0.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn parse_hex_8digit_alpha() {
+        let semi = parse_hex("#ff000080").unwrap();
+        assert!((semi.red - 1.0).abs() < 1e-6);
+        assert!((semi.alpha - 0.5019608).abs() < 1e-3);
+    }
+
+    #[test]
+    fn parse_hex_4digit_alpha() {
+        let semi = parse_hex("#f008").unwrap();
+        assert!((semi.red - 1.0).abs() < 1e-6);
+        assert!((semi.alpha - 0.5333334).abs() < 1e-3); // 8/15 ≈ 0.533
+    }
+
+    #[test]
+    fn parse_hex_no_hash() {
+        let blue = parse_hex("0000ff").unwrap();
+        assert!((blue.blue - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn parse_hex_invalid() {
+        assert!(parse_hex("#gg0000").is_err());
+        assert!(parse_hex("#12345").is_err()); // wrong length
+        assert!(parse_hex("").is_err());
+    }
+
+    #[test]
+    fn parse_named_basic_colors() {
+        let red = parse_named("red").unwrap();
+        assert!((red.red - 1.0).abs() < 1e-6);
+        assert!((red.green - 0.0).abs() < 1e-6);
+        assert!((red.blue - 0.0).abs() < 1e-6);
+
+        let white = parse_named("white").unwrap();
+        assert!((white.red - 1.0).abs() < 1e-6);
+        assert!((white.green - 1.0).abs() < 1e-6);
+        assert!((white.blue - 1.0).abs() < 1e-6);
+
+        let transparent = parse_named("transparent").unwrap();
+        assert!((transparent.alpha - 0.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn parse_named_case_insensitive() {
+        let red1 = parse_named("RED").unwrap();
+        let red2 = parse_named("Red").unwrap();
+        let red3 = parse_named("red").unwrap();
+        assert!((red1.red - red2.red).abs() < 1e-6);
+        assert!((red2.red - red3.red).abs() < 1e-6);
+    }
+
+    #[test]
+    fn parse_named_unknown() {
+        assert!(parse_named("notacolor").is_err());
+    }
+
+    #[test]
+    fn parse_color_auto_detect() {
+        let hex_red = parse_color("#ff0000").unwrap();
+        let named_red = parse_color("red").unwrap();
+        // Both should produce similar red
+        assert!((hex_red.red - 1.0).abs() < 1e-6);
+        assert!((named_red.red - 1.0).abs() < 1e-6);
     }
 }

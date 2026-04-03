@@ -12,8 +12,8 @@ fn main() {
     let configs = [
         ("Gentle", SpringConfig::gentle()),
         ("Wobbly", SpringConfig::wobbly()),
-        ("Stiff",  SpringConfig::stiff()),
-        ("Slow",   SpringConfig::slow()),
+        ("Stiff", SpringConfig::stiff()),
+        ("Slow", SpringConfig::slow()),
     ];
 
     for (name, config) in &configs {
@@ -24,8 +24,10 @@ fn main() {
         let mut frames = 0;
 
         println!("\n  ── {} Spring ──", name);
-        println!("  Target: 100.0 | stiffness={}, damping={}",
-                 config.stiffness, config.damping);
+        println!(
+            "  Target: 100.0 | stiffness={}, damping={}",
+            config.stiffness, config.damping
+        );
         println!();
 
         while !spring.is_settled() && frames < 300 {
@@ -47,11 +49,18 @@ fn main() {
                         print!(" ");
                     }
                 }
-                println!("  pos={:6.1} vel={:6.1}", spring.position(), spring.velocity());
+                println!(
+                    "  pos={:6.1} vel={:6.1}",
+                    spring.position(),
+                    spring.velocity()
+                );
             }
         }
 
-        println!("  → Settled in {} frames ({:.0}ms at 60fps)\n",
-                 frames, frames as f32 / 60.0 * 1000.0);
+        println!(
+            "  → Settled in {} frames ({:.0}ms at 60fps)\n",
+            frames,
+            frames as f32 / 60.0 * 1000.0
+        );
     }
 }

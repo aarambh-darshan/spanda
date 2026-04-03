@@ -24,6 +24,10 @@
 //! assert!((t.value() - 100.0).abs() < 1e-6);
 //! ```
 
+#[cfg(not(feature = "std"))]
+#[allow(unused_imports)]
+use num_traits::Float as _;
+
 use crate::easing::Easing;
 use crate::keyframe::Loop;
 use crate::traits::{Animatable, Update};
@@ -87,6 +91,12 @@ pub struct Tween<T: Animatable> {
     /// Callback fired once when the tween completes (after all loops).
     #[cfg(all(feature = "std", not(feature = "bevy")))]
     on_complete_cb: Option<Box<dyn FnMut()>>,
+    /// Callback fired when a loop iteration completes (for looping tweens).
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    on_repeat_cb: Option<Box<dyn FnMut(u32)>>,
+    /// Callback fired when reverse playback completes.
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    on_reverse_complete_cb: Option<Box<dyn FnMut()>>,
     /// Value modifier applied after interpolation in `value()`.
     #[cfg(all(feature = "std", not(feature = "bevy")))]
     modifier: Option<Box<dyn Fn(T) -> T>>,
@@ -118,6 +128,7 @@ impl<T: Animatable> Tween<T> {
     ///
     /// Returns a [`TweenBuilder`] — call `.duration()`, `.easing()`,
     /// `.delay()`, and `.build()` to finish.
+    #[allow(clippy::new_ret_no_self)]
     pub fn new(start: T, end: T) -> TweenBuilder<T> {
         TweenBuilder {
             start,
@@ -146,18 +157,68 @@ impl<T: Animatable> Tween<T> {
         Self::new(start, end)
     }
 
+    /// GSAP-style `set` — immediately set a value without animation.
+    ///
+    /// Creates a completed tween with the given value. Useful for initial state
+    /// setup or instant transitions in timelines.
+    ///
+    /// ```rust
+    /// use spanda::tween::Tween;
+    /// use spanda::traits::Update;
+    ///
+    /// let t = Tween::set(100.0_f32);
+    /// assert!(t.is_complete());
+    /// assert!((t.value() - 100.0).abs() < 1e-6);
+    /// ```
+    pub fn set(value: T) -> Tween<T>
+    where
+        T: Clone,
+    {
+        Tween {
+            start: value.clone(),
+            end: value,
+            duration: 0.0,
+            easing: Easing::Linear,
+            delay: 0.0,
+            time_scale: 1.0,
+            looping: Loop::Once,
+            loop_count: 0,
+            forward: true,
+            started: true,
+            elapsed: 0.0,
+            state: TweenState::Completed,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_start_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_update_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_complete_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_repeat_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_reverse_complete_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            modifier: None,
+        }
+    }
+
     /// Current interpolated value.
     ///
     /// Applies the easing curve to the raw progress and lerps between
     /// `start` and `end`.  If a modifier is set, it is applied after
     /// interpolation.
+    #[inline]
     pub fn value(&self) -> T {
         let val = if self.duration <= 0.0 {
             self.end.clone()
         } else {
             let raw_t = (self.elapsed / self.duration).clamp(0.0, 1.0);
             let curved_t = self.easing.apply(raw_t);
-            self.start.lerp(&self.end, curved_t)
+            if self.forward {
+                self.start.lerp(&self.end, curved_t)
+            } else {
+                self.end.lerp(&self.start, curved_t)
+            }
         };
         #[cfg(all(feature = "std", not(feature = "bevy")))]
         {
@@ -169,6 +230,7 @@ impl<T: Animatable> Tween<T> {
     }
 
     /// Raw progress in `0.0..=1.0` (before easing is applied).
+    #[inline]
     pub fn progress(&self) -> f32 {
         if self.duration <= 0.0 {
             return 1.0;
@@ -177,6 +239,7 @@ impl<T: Animatable> Tween<T> {
     }
 
     /// `true` once the animation has finished.
+    #[inline]
     pub fn is_complete(&self) -> bool {
         self.state == TweenState::Completed
     }
@@ -205,10 +268,11 @@ impl<T: Animatable> Tween<T> {
         }
     }
 
-    /// Swap `start` and `end`, then reset to the beginning.
+    /// Reverse playback direction, then reset to the beginning.
     pub fn reverse(&mut self) {
-        core::mem::swap(&mut self.start, &mut self.end);
+        let fwd = !self.forward;
         self.reset();
+        self.forward = fwd;
     }
 
     /// Pause the tween (freezes `elapsed`).
@@ -279,6 +343,27 @@ impl<T: Animatable> Tween<T> {
         self
     }
 
+    /// Register a callback that fires when a loop iteration completes.
+    ///
+    /// The callback receives the current loop count (1 after first iteration, etc.).
+    /// Does not fire on the final iteration — use `on_complete` for that.
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    pub fn on_repeat<F: FnMut(u32) + 'static>(&mut self, f: F) -> &mut Self {
+        self.on_repeat_cb = Some(Box::new(f));
+        self
+    }
+
+    /// Register a callback that fires when reverse playback completes.
+    ///
+    /// For `PingPong` mode, fires every time the tween returns to the original
+    /// start value. For manual `reverse()` calls, fires when the reversed
+    /// animation completes.
+    #[cfg(all(feature = "std", not(feature = "bevy")))]
+    pub fn on_reverse_complete<F: FnMut() + 'static>(&mut self, f: F) -> &mut Self {
+        self.on_reverse_complete_cb = Some(Box::new(f));
+        self
+    }
+
     /// Set a value modifier that transforms the interpolated value before
     /// it is returned by [`Tween::value`].
     ///
@@ -342,6 +427,13 @@ impl<T: Animatable> Update for Tween<T> {
                         let leftover = self.elapsed - self.duration;
                         self.elapsed = leftover;
                         self.started = false;
+                        // Fire on_repeat callback
+                        #[cfg(all(feature = "std", not(feature = "bevy")))]
+                        {
+                            if let Some(ref mut cb) = self.on_repeat_cb {
+                                cb(self.loop_count);
+                            }
+                        }
                     }
                 }
                 Loop::Forever => {
@@ -349,14 +441,35 @@ impl<T: Animatable> Update for Tween<T> {
                     self.elapsed = leftover;
                     self.loop_count += 1;
                     self.started = false;
+                    // Fire on_repeat callback
+                    #[cfg(all(feature = "std", not(feature = "bevy")))]
+                    {
+                        if let Some(ref mut cb) = self.on_repeat_cb {
+                            cb(self.loop_count);
+                        }
+                    }
                 }
                 Loop::PingPong => {
                     let leftover = self.elapsed - self.duration;
                     self.elapsed = leftover;
                     self.loop_count += 1;
+                    let _was_forward = self.forward;
                     self.forward = !self.forward;
-                    core::mem::swap(&mut self.start, &mut self.end);
                     self.started = false;
+                    // Fire callbacks for PingPong
+                    #[cfg(all(feature = "std", not(feature = "bevy")))]
+                    {
+                        // Fire on_repeat for every iteration
+                        if let Some(ref mut cb) = self.on_repeat_cb {
+                            cb(self.loop_count);
+                        }
+                        // Fire on_reverse_complete when returning to start (was going backward)
+                        if !_was_forward {
+                            if let Some(ref mut cb) = self.on_reverse_complete_cb {
+                                cb();
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -459,6 +572,10 @@ impl<T: Animatable> TweenBuilder<T> {
             #[cfg(all(feature = "std", not(feature = "bevy")))]
             on_complete_cb: None,
             #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_repeat_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
+            on_reverse_complete_cb: None,
+            #[cfg(all(feature = "std", not(feature = "bevy")))]
             modifier: None,
         }
     }
@@ -540,10 +657,7 @@ mod tests {
 
     #[test]
     fn tween_delay_is_respected() {
-        let mut t = Tween::new(0.0_f32, 100.0)
-            .duration(1.0)
-            .delay(0.5)
-            .build();
+        let mut t = Tween::new(0.0_f32, 100.0).duration(1.0).delay(0.5).build();
         assert_eq!(t.state, TweenState::Waiting);
 
         // Advance less than the delay
@@ -699,8 +813,8 @@ mod tests {
             .duration(1.0)
             .looping(Loop::Times(3))
             .build();
-        assert!(t.update(1.0));  // loop 1
-        assert!(t.update(1.0));  // loop 2
+        assert!(t.update(1.0)); // loop 1
+        assert!(t.update(1.0)); // loop 2
         assert!(!t.update(1.0)); // loop 3, done
         assert!(t.is_complete());
     }
@@ -711,10 +825,10 @@ mod tests {
             .duration(1.0)
             .looping(Loop::PingPong)
             .build();
-        t.update(1.0); // forward complete, swaps to reverse
+        t.update(1.0); // forward complete, flips to reverse via forward flag
         t.update(0.5); // halfway back
-        // After ping-pong: start is now 100, end is now 0
-        // At elapsed 0.5 of 1.0 duration, linear value should be ~50.0
+        // After ping-pong: forward=false, start=0, end=100
+        // Value uses end.lerp(start, curved_t) => 100.lerp(0, 0.5) = 50.0
         assert!((t.value() - 50.0).abs() < 1e-4);
     }
 
@@ -745,14 +859,16 @@ mod tests {
     #[cfg(all(feature = "std", not(feature = "bevy")))]
     #[test]
     fn on_start_fires_once() {
-        use std::sync::atomic::{AtomicU32, Ordering};
         use std::sync::Arc;
+        use std::sync::atomic::{AtomicU32, Ordering};
 
         let count = Arc::new(AtomicU32::new(0));
         let count_clone = count.clone();
 
         let mut t = Tween::new(0.0_f32, 100.0).duration(1.0).build();
-        t.on_start(move || { count_clone.fetch_add(1, Ordering::SeqCst); });
+        t.on_start(move || {
+            count_clone.fetch_add(1, Ordering::SeqCst);
+        });
 
         t.update(0.1);
         t.update(0.1);
@@ -771,7 +887,9 @@ mod tests {
         let values_clone = values.clone();
 
         let mut t = Tween::new(0.0_f32, 100.0).duration(1.0).build();
-        t.on_update(move |val| { values_clone.borrow_mut().push(val); });
+        t.on_update(move |val| {
+            values_clone.borrow_mut().push(val);
+        });
 
         t.update(0.5);
 
@@ -783,14 +901,16 @@ mod tests {
     #[cfg(all(feature = "std", not(feature = "bevy")))]
     #[test]
     fn on_complete_fires_once() {
-        use std::sync::atomic::{AtomicBool, Ordering};
         use std::sync::Arc;
+        use std::sync::atomic::{AtomicBool, Ordering};
 
         let fired = Arc::new(AtomicBool::new(false));
         let fired_clone = fired.clone();
 
         let mut t = Tween::new(0.0_f32, 100.0).duration(0.5).build();
-        t.on_complete(move || { fired_clone.store(true, Ordering::SeqCst); });
+        t.on_complete(move || {
+            fired_clone.store(true, Ordering::SeqCst);
+        });
 
         t.update(0.5);
         assert!(fired.load(Ordering::SeqCst));

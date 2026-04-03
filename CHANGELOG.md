@@ -6,6 +6,77 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.9.2]
+
+### Added
+
+- **Tween Enhancements**:
+  - `Tween::set()` — immediately set a value without animation (GSAP `gsap.set()` equivalent)
+  - `on_repeat()` callback — fires each time a looping tween repeats
+  - `on_reverse_complete()` callback — fires when ping-pong tweens reverse
+
+- **Timeline Enhancements**:
+  - `Timeline::call()` — insert callback functions at specific points in timeline
+  - `Timeline::add_pause()` — insert pause points in timeline sequence
+  - `total_duration()` / `total_progress()` — query overall timeline metrics
+  - `get_entries_by_label()` — retrieve timeline entries by label name
+
+- **ScrollDriver Enhancements**:
+  - `on_enter`, `on_leave`, `on_enter_back`, `on_leave_back` callbacks — scroll position event hooks
+  - `snap_points` — define snap positions for scroll-linked animations
+  - `nearest_snap_point()` — find closest snap point to current scroll position
+
+- **DragState Enhancements**:
+  - `on_drag_start`, `on_drag_end`, `on_click`, `on_throw_update` callbacks
+  - `snap_on_release` — automatic snapping when drag ends
+  - Click vs drag detection via `click_threshold`
+
+- **Color Parsing** (`colour` module, `palette` feature):
+  - `parse_hex()` — parse hex color strings (#RGB, #RGBA, #RRGGBB, #RRGGBBAA)
+  - `parse_named()` — parse CSS named colors (red, blue, transparent, etc.)
+  - `parse_color()` — auto-detect and parse either format
+
+- **MotionPath Enhancements**:
+  - `get_relative_position()` — find progress along path for any world point
+  - `closest_point()` — find nearest point on path with distance
+
+- **MorphPath Enhancements**:
+  - `ShapeIndex` enum — control point correspondence during shape morphing
+  - `ShapeIndex::auto()` — automatic rotation optimization for smoother morphs
+  - `shape_index()` builder method
+
+- **Observer Enhancements** (`wasm-dom` feature):
+  - `ObserverOptions` — tolerance, preventDefault, allowClicks, capture, lockAxis
+  - `bind_with_options()` — configurable event observation
+
+- **SplitText Enhancements**:
+  - `SplitTextOptions` — word_delimiter, chars_class, words_class, lines_class
+  - `from_str_with_options()` — split with custom configuration
+  - `rebuild()` — re-split with new options
+
+- **FLIP Animation Callbacks**:
+  - `on_enter`, `on_leave`, `on_complete` callbacks for FlipAnimation
+
+### Fixed & Optimized (v0.9.2 Stabilization)
+
+- **Tween / Timeline API Polish**:
+  - Fixed `PingPong` directionality test logic (refactored to use `forward` flag instead of swapping `start`/`end` fields, avoiding history mutation).
+  - Fixed `Timeline::add` positioning logic for 0-duration tweens via new `add_with_duration` method.
+  - Re-typed `KeyframeTrack::value()` and `value_at()` to return `Option<T>` instead of panicking on empty tracks.
+
+- **Optimizations & Refactors**:
+  - Optimized `SpringN` to cache `target_components`, completely avoiding per-frame `Vec` allocation in the `Update` trait's hot path.
+  - Refactored `Easing::Custom`'s `PartialEq` implementation to always gracefully return `false`, mitigating cross-compilation function pointer identity issues.
+  - Expanded `Easing::all_named()` to include 7 representative parameterized variants, and introduced `Easing::all_classic()` for the 31 classic names.
+  - Stripped redundant `std::vec::Vec` and extra feature-gated `no_std` imports across the codebase.
+  - Inserted missing `#[derive(Debug)]` on Bevy integration types (`SpandaPlugin`, `TweenCompleted`, `SpringSettled`).
+  - Implemented `#[inline]` markings on fast-path functions (`progress()`, `is_complete()`, `apply()`) to boost runtime performance.
+  - Updated to use **Rust 2024 edition** and bumped `rust-version` to `1.85`.
+
+### Dependencies
+
+- Updated **Bevy** from `0.13` to `0.18` (migrated to the new queue-based `Message` API).
+
 ## [0.9.1]
 
 ### Fixed

@@ -1,6 +1,6 @@
 //! Integration tests for generic SpringN — multi-dimensional spring physics.
 
-use spanda::spring::{SpringN, SpringConfig};
+use spanda::spring::{SpringConfig, SpringN};
 use spanda::traits::Update;
 
 #[test]
@@ -62,14 +62,20 @@ fn spring_n_retarget_preserves_velocity() {
     }
 
     let vel_before = spring.velocity_components().to_vec();
-    assert!(vel_before.iter().any(|v| v.abs() > 0.1), "should have velocity");
+    assert!(
+        vel_before.iter().any(|v| v.abs() > 0.1),
+        "should have velocity"
+    );
 
     // Retarget mid-flight
     spring.set_target([200.0, 0.0]);
 
     // Velocity should still be present (not reset)
     let vel_after = spring.velocity_components().to_vec();
-    assert!(vel_after.iter().any(|v| v.abs() > 0.1), "velocity preserved after retarget");
+    assert!(
+        vel_after.iter().any(|v| v.abs() > 0.1),
+        "velocity preserved after retarget"
+    );
 
     // Should settle to new target
     for _ in 0..2000 {

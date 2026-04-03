@@ -10,10 +10,7 @@ use spanda::svg_path::SvgPathParser;
 
 fn main() {
     let paths = [
-        (
-            "Simple line",
-            "M 0 0 L 100 0 L 100 100 L 0 100 Z",
-        ),
+        ("Simple line", "M 0 0 L 100 0 L 100 100 L 0 100 Z"),
         (
             "S-curve",
             "M 0 0 C 0 80 100 -30 100 50 C 100 130 200 20 200 100",
@@ -22,14 +19,8 @@ fn main() {
             "Heart shape",
             "M 100 30 C 100 0 50 0 50 30 C 50 60 100 80 100 100 C 100 80 150 60 150 30 C 150 0 100 0 100 30 Z",
         ),
-        (
-            "Arrow (H/V)",
-            "M 0 50 H 80 V 20 L 120 50 L 80 80 V 50",
-        ),
-        (
-            "Relative commands",
-            "M 0 0 l 50 0 l 0 50 l -50 0 z",
-        ),
+        ("Arrow (H/V)", "M 0 50 H 80 V 20 L 120 50 L 80 80 V 50"),
+        ("Relative commands", "M 0 0 l 50 0 l 0 50 l -50 0 z"),
     ];
 
     for (name, d_string) in &paths {
@@ -42,12 +33,19 @@ fn main() {
         println!("  Parsed {} commands", commands.len());
 
         let path = CompoundPath::new(commands);
-        println!("  Segments: {} | Arc length: {:.1}\n", path.segment_count(), path.arc_length());
+        println!(
+            "  Segments: {} | Arc length: {:.1}\n",
+            path.segment_count(),
+            path.arc_length()
+        );
 
         // Sample 11 points along the path
         let steps = 10;
         println!("  {:>5}  {:>8}  {:>8}  {:>10}", "u", "x", "y", "rotation");
-        println!("  {:>5}  {:>8}  {:>8}  {:>10}", "---", "------", "------", "--------");
+        println!(
+            "  {:>5}  {:>8}  {:>8}  {:>10}",
+            "---", "------", "------", "--------"
+        );
 
         for i in 0..=steps {
             let u = i as f32 / steps as f32;
@@ -109,7 +107,7 @@ fn draw_path(path: &CompoundPath, width: usize, height: usize) {
     }
 
     for row in &grid {
-        print!  ("  |");
+        print!("  |");
         for ch in row {
             print!("{}", ch);
         }
