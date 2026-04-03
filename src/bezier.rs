@@ -235,7 +235,7 @@ pub fn tangent_angle_deg(tangent: [f32; 2]) -> f32 {
 mod tests {
     use super::*;
     #[cfg(not(feature = "std"))]
-    use alloc::{format, vec, vec::Vec, string::String};
+    use alloc::{format, string::String, vec, vec::Vec};
 
     #[test]
     fn catmull_rom_endpoints() {

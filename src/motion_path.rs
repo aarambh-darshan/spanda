@@ -688,7 +688,7 @@ impl core::fmt::Debug for CompoundPath {
 mod tests {
     use super::*;
     #[cfg(not(feature = "std"))]
-    use alloc::{format, vec, vec::Vec, string::String};
+    use alloc::{format, string::String, vec, vec::Vec};
 
     // ── PolyPath tests ─────────────────────────────────────────────────────
 
