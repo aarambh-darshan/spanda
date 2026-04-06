@@ -52,6 +52,7 @@
 | `driver` (AnimationDriver) | Y | Y | | | | | | |
 | `driver` (AnimationDriverArc) | | **req** | | | | | | |
 | `scroll` (ScrollClock, ScrollDriver) | Y | Y | | | | | | |
+| `scroll_smooth` (SmoothScroll1D) | Y | Y | | | | | | |
 | **Colour** | | | | | | | | |
 | `colour` (Interpolate for 9 palette types) | | | | | | | **req** | |
 | `colour` (InLab, InOklch, InLinear wrappers) | | | | | | | **req** | |
@@ -63,6 +64,7 @@
 | `integrations::split_text` (DOM injection) | | | | | | **req** | | |
 | `integrations::flip` (FlipState, FlipAnimation) | | | | | | **req** | | |
 | `integrations::scroll_smoother` | | | | | | **req** | | |
+| `integrations::smooth_scroll` (SmoothScroll) | | | | | | **req** | | |
 | `integrations::draggable` | | | | | | **req** | | |
 | `integrations::observer` | | | | | | **req** | | |
 
@@ -91,7 +93,7 @@ Some modules are always compiled but have specific behaviours that require featu
 | A TUI app | `default` (just `std`) | `WallClock` for real-time frame loop |
 | A Bevy game | `bevy` | Auto-ticks components via `SpandaPlugin` |
 | A Leptos/Yew web app | `wasm` | `RafDriver` for `requestAnimationFrame` |
-| A web app with DOM interaction | `wasm-dom` | FLIP, SplitText, Draggable, ScrollSmoother |
+| A web app with DOM interaction | `wasm-dom` | FLIP, SplitText, Draggable, ScrollSmoother, SmoothScroll |
 | A CLI tool | `default` | Standard `WallClock` + `AnimationDriver` |
 | Embedded / `no_std` | `default-features = false` | Pure math, zero OS dependencies |
 | Colour animations | `palette` | `Interpolate` impl for palette colour types |

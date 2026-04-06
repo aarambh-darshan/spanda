@@ -6,7 +6,7 @@
 //! |------------|--------|------------------|
 //! | `bevy`     | [`bevy`] | `SpandaPlugin` — auto-ticks Tween/Spring components |
 //! | `wasm`     | [`wasm`] | `RafDriver` — `requestAnimationFrame` loop |
-//! | `wasm-dom` | [`flip`], [`split_text`], [`scroll_smoother`], [`draggable`], [`observer`] | DOM interaction plugins |
+//! | `wasm-dom` | [`flip`], [`split_text`], [`scroll_smoother`], [`smooth_scroll`], [`draggable`], [`observer`] | DOM interaction plugins |
 
 #[cfg(feature = "bevy")]
 pub mod bevy;
@@ -23,6 +23,9 @@ pub mod flip;
 
 #[cfg(feature = "wasm-dom")]
 pub mod scroll_smoother;
+
+#[cfg(feature = "wasm-dom")]
+pub mod smooth_scroll;
 
 #[cfg(feature = "wasm-dom")]
 pub mod draggable;

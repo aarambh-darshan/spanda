@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.9.3]
+
+### Added
+
+- **Smooth window scroll** (`wasm-dom`):
+  - [`SmoothScroll1D`](src/scroll_smooth.rs) — frame-rate independent exponential decay toward a target scroll offset (pure math, unit-tested).
+  - [`integrations::smooth_scroll::SmoothScroll`](src/integrations/smooth_scroll.rs) — wheel, keyboard, touch + `InertiaN<[f32; 1]>` fling, `resize` / `hashchange` / anchor `click`, `prefers-reduced-motion`; applies scroll only via `Window::scroll_to_with_x_and_y`; sets `touch-action` / `overscroll-behavior` on `<html>` while active.
+  - [`SpringAnimatable` for `[f32; 1]`](src/spring.rs) — used by 1D `InertiaN` in touch momentum.
+
 ## [0.9.2]
 
 ### Added

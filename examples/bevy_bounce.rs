@@ -12,7 +12,7 @@
 //! // Add to your Cargo.toml:
 //! // [dependencies]
 //! // bevy = "0.18"
-//! // spanda = { version = "0.9.2", features = ["bevy"] }
+//! // spanda = { version = "0.9.3", features = ["bevy"] }
 //!
 //! use bevy::prelude::*;
 //! use spanda::integrations::bevy::{SpandaPlugin, TweenCompleted, SpringSettled};
