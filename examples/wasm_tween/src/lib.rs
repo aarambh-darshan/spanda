@@ -1,6 +1,10 @@
 //! WASM tween example — animate a DOM element using spanda + RafDriver.
 //!
 //! Build with: `trunk serve --open` from this directory.
+//!
+//! For Lenis-style **window** smooth scrolling, enable crate features `wasm,wasm-dom` and use
+//! [`spanda::integrations::smooth_scroll::SmoothScroll`](https://docs.rs/spanda/latest/spanda/integrations/smooth_scroll/struct.SmoothScroll.html)
+//! alongside your rAF loop (`SmoothScroll::tick`).
 
 use spanda::easing::Easing;
 use spanda::integrations::wasm::RafDriver;

@@ -1,6 +1,6 @@
 [package]
 name        = "spanda"
-version     = "0.9.2"
+version     = "0.9.3"
 edition     = "2024"
 rust-version = "1.85"
 description = "A general-purpose animation library for Rust — tweening, keyframes, timelines, and physics."
@@ -36,7 +36,15 @@ web-sys      = { version = "0.3",  optional = true, features = [
     "Window", "Document", "Element", "HtmlElement", "DomRect",
     "CssStyleDeclaration", "Node", "NodeList", "Text",
     "EventTarget", "Event", "PointerEvent", "MouseEvent", "HtmlCollection",
-    "TouchEvent", "Touch", "TouchList", "WheelEvent",
+    "TouchEvent", "Touch", "TouchList", "WheelEvent", "KeyboardEvent",
+    "HashChangeEvent", "MediaQueryList", "MediaQueryListEvent",
+    "AddEventListenerOptions",
+    "Location",
+    "History",
+    "UiEvent",
+    "Url",
+    "HtmlAnchorElement",
+
 ] }
 palette      = { version = "0.7",  optional = true }
 tokio        = { version = "1",    features = ["sync"], optional = true }

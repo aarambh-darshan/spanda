@@ -19,6 +19,7 @@ game engines (Bevy), or native desktop apps.
 - **Callbacks** — `on_start`, `on_update`, `on_complete` on tweens (`std` feature)
 - **Value modifiers** — `snap_to(grid)`, `round_to(decimals)`, custom modifiers
 - **Scroll-linked animation** — `ScrollDriver` / `ScrollClock` for position-driven animations
+- **Lenis-style smooth scroll** — `SmoothScroll1D` core + `integrations::smooth_scroll::SmoothScroll` (window scroll, exponential easing, wheel / keyboard / touch + `InertiaN` momentum; `wasm-dom`)
 - **Motion paths** — quadratic/cubic Bezier, CatmullRom splines, SVG path parsing, arc-length parameterization
 - **Full motion path system** — `PolyPath`, `CompoundPath`, `SvgPathParser`, auto-rotate, start/end offsets
 - **CSS easing** — `CubicBezier(x1,y1,x2,y2)` and `Steps(n)` on the `Easing` enum
@@ -28,7 +29,7 @@ game engines (Bevy), or native desktop apps.
 - **Inertia physics** — `Inertia` / `InertiaN<T>` friction deceleration with presets
 - **Advanced easings** — `RoughEase`, `SlowMo`, `ExpoScale`, `Wiggle`, `CustomBounce`
 - **Drag tracking** — `DragState` with velocity EMA, bounds, axis lock, grid snap → `InertiaN` on release
-- **WASM-DOM plugins** — FLIP animations, SplitText, ScrollSmoother, Draggable, Observer (`wasm-dom` feature)
+- **WASM-DOM plugins** — FLIP animations, SplitText, ScrollSmoother, SmoothScroll, Draggable, Observer (`wasm-dom` feature)
 - **Layout animation** — automatic FLIP-style transitions with `LayoutAnimator`, shared element transitions
 - **Gesture recognition** — `GestureRecognizer` for tap, swipe, long press, pinch, rotation
 - **GPU compute shaders** — `GpuAnimationBatch` for batch-evaluating 10,000+ tweens on the GPU (`gpu` feature)
@@ -39,7 +40,7 @@ game engines (Bevy), or native desktop apps.
 
 ```toml
 [dependencies]
-spanda = "0.9.2"
+spanda = "0.9.3"
 ```
 
 ### Quick Example
@@ -331,7 +332,7 @@ let positions: &[f32] = batch.read_back();
 | `serde`    | `Serialize`/`Deserialize` on all public types         |
 | `bevy`     | `SpandaPlugin` for Bevy 0.18                          |
 | `wasm`     | `requestAnimationFrame` driver                        |
-| `wasm-dom` | DOM plugins: FLIP, SplitText, ScrollSmoother, Draggable, Observer |
+| `wasm-dom` | DOM plugins: FLIP, SplitText, ScrollSmoother, SmoothScroll, Draggable, Observer |
 | `palette`  | Colour interpolation via the `palette` crate          |
 | `tokio`    | `async` / `.await` on timeline completion             |
 | `gpu`      | GPU compute shader batch animation via `wgpu`         |
@@ -362,6 +363,19 @@ driver.set_time_scale(2.0); // 2x speed
 // Call driver.tick(timestamp_ms) from your rAF callback.
 ```
 
+### Smooth window scroll (`wasm-dom`)
+
+[`SmoothScroll`](https://docs.rs/spanda/latest/spanda/integrations/smooth_scroll/struct.SmoothScroll.html) applies Lenis-style smoothing to **window** scroll (`scroll_to_with_x_and_y` only). Feed [`current_scroll()`](https://docs.rs/spanda/latest/spanda/integrations/smooth_scroll/struct.SmoothScroll.html#method.current_scroll) into [`ScrollDriver::set_position`](https://docs.rs/spanda/latest/spanda/scroll/struct.ScrollDriver.html#method.set_position) for scroll-linked motion that matches what the user sees.
+
+```rust,ignore
+use spanda::integrations::smooth_scroll::{SmoothScroll, SmoothScrollOptions};
+
+let mut smooth = SmoothScroll::new(SmoothScrollOptions::default());
+smooth.attach().expect("attach");
+// Each rAF: dt = seconds since last frame
+smooth.tick(dt);
+```
+
 ## Benchmarks
 
 ```bash
@@ -389,6 +403,7 @@ src/
 ├── clock.rs         — Clock, WallClock, ManualClock, MockClock
 ├── driver.rs        — AnimationDriver, AnimationId
 ├── scroll.rs        — ScrollClock, ScrollDriver
+├── scroll_smooth.rs — SmoothScroll1D (exponential smooth scroll core)
 ├── path.rs          — BezierPath, MotionPath, MotionPathTween
 ├── bezier.rs        — CatmullRomSpline, PathEvaluate2D
 ├── motion_path.rs   — PolyPath, CompoundPath, PathCommand
@@ -409,6 +424,7 @@ src/
     ├── split_text.rs — SplitText character/word splitting
     ├── flip.rs      — FlipState, FlipAnimation (feature = "wasm-dom")
     ├── scroll_smoother.rs — ScrollSmoother (feature = "wasm-dom")
+    ├── smooth_scroll.rs — SmoothScroll (feature = "wasm-dom")
     ├── draggable.rs — Draggable DOM binding (feature = "wasm-dom")
     └── observer.rs  — Observer unified input (feature = "wasm-dom")
 ```

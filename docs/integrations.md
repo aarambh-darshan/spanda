@@ -134,7 +134,7 @@ If you use [Bevy](https://bevyengine.org), activate the `bevy` feature:
 
 ```toml
 [dependencies]
-spanda = { version = "0.9.2", features = ["bevy"] }
+spanda = { version = "0.9.3", features = ["bevy"] }
 ```
 
 This adds `SpandaPlugin`, which automatically:
@@ -197,7 +197,7 @@ Activate the `wasm` feature:
 
 ```toml
 [dependencies]
-spanda = { version = "0.9.2", features = ["wasm"] }
+spanda = { version = "0.9.3", features = ["wasm"] }
 ```
 
 Use `RafDriver` — pass it the high-resolution timestamp from JavaScript.  New in 0.6: pause/resume, time scale, visibility change handling, and `start_raf_loop`:
@@ -378,7 +378,7 @@ For web apps that need direct DOM interaction, the `wasm-dom` feature adds five 
 
 ```toml
 [dependencies]
-spanda = { version = "0.9.2", features = ["wasm-dom"] }
+spanda = { version = "0.9.3", features = ["wasm-dom"] }
 ```
 
 > `wasm-dom` implies `wasm`, so you don't need to specify both.
@@ -487,6 +487,27 @@ let smooth_pos = smoother.position(); // spring-smoothed scroll position
 // smoother.detach() to restore native scrolling
 ```
 
+### SmoothScroll
+
+Lenis-style **window** smooth scrolling: virtual target + exponential decay toward it, applied only with `Window::scroll_to_with_x_and_y`. Handles wheel (non-passive), keyboard (`Space`, `PageDown`/`PageUp`, arrows, `Home`/`End`), touch drag + [`InertiaN`](https://docs.rs/spanda/latest/spanda/inertia/struct.InertiaN.html) momentum on release, `resize`, `hashchange` and same-document anchor clicks (capture-phase `click` + `history.pushState`), and `prefers-reduced-motion`. Sets `touch-action: none` and `overscroll-behavior: none` on the document element while attached.
+
+For scroll-linked tweens, pass [`SmoothScroll::current_scroll`](https://docs.rs/spanda/latest/spanda/integrations/smooth_scroll/struct.SmoothScroll.html#method.current_scroll) into [`ScrollDriver::set_position`](https://docs.rs/spanda/latest/spanda/scroll/struct.ScrollDriver.html#method.set_position) so animation progress matches the smoothed viewport.
+
+[`ScrollSmoother`](https://docs.rs/spanda/latest/spanda/integrations/scroll_smoother/struct.ScrollSmoother.html) remains the spring + `transform` lag variant; choose one or the other.
+
+```rust,ignore
+use spanda::integrations::smooth_scroll::{SmoothScroll, SmoothScrollOptions};
+
+let mut smooth = SmoothScroll::new(SmoothScrollOptions::default());
+smooth.attach().expect("attach");
+
+// In your requestAnimationFrame callback, dt in seconds:
+smooth.tick(dt);
+
+// Optional: programmatic scroll (instant if smooth == false or reduced motion)
+smooth.scroll_to(400.0, true);
+```
+
 ### Draggable
 
 DOM-bound pointer event wrapper over `DragState`. Handles all the event binding so you just read position:
@@ -535,7 +556,8 @@ driver.add(
         .build()
 );
 
-// In your scroll handler:
+// In your scroll handler, use the smoothed offset when using `SmoothScroll`:
+// driver.set_position(smooth.current_scroll());
 driver.set_position(scroll_offset);
 ```
 
@@ -598,7 +620,7 @@ Spanda works in `no_std` environments — disable the default `std` feature:
 
 ```toml
 [dependencies]
-spanda = { version = "0.9.2", default-features = false }
+spanda = { version = "0.9.3", default-features = false }
 ```
 
 In `no_std` mode:

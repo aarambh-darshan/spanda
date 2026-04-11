@@ -494,6 +494,15 @@ impl SpringAnimatable for f32 {
     }
 }
 
+impl SpringAnimatable for [f32; 1] {
+    fn to_components(&self) -> Vec<f32> {
+        vec![self[0]]
+    }
+    fn from_components(c: &[f32]) -> Self {
+        [c[0]]
+    }
+}
+
 impl SpringAnimatable for [f32; 2] {
     fn to_components(&self) -> Vec<f32> {
         vec![self[0], self[1]]

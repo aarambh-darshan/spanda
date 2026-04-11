@@ -38,7 +38,7 @@ This architecture makes spanda work **everywhere**:
 | **Inertia** | Friction deceleration (Inertia, InertiaN) with presets | [v080.md](v080.md) |
 | **Drag** | Pure-math drag tracking with velocity, constraints, grid snap | [v080.md](v080.md) |
 | **Advanced Easings** | RoughEase, SlowMo, ExpoScale, Wiggle, CustomBounce | [easing.md](easing.md) |
-| **WASM-DOM Plugins** | FLIP, SplitText, ScrollSmoother, Draggable, Observer | [v080.md](v080.md) |
+| **WASM-DOM Plugins** | FLIP, SplitText, ScrollSmoother, SmoothScroll, Draggable, Observer | [v080.md](v080.md) |
 | **Layout** | FLIP-style layout animation, SharedElementTransition | [layout.md](layout.md) |
 | **Gesture** | GestureRecognizer — tap, swipe, pinch, rotate, long press | [gesture.md](gesture.md) |
 | **GPU** | GpuAnimationBatch — batch 10K+ tweens on GPU compute shaders | [gpu.md](gpu.md) |
@@ -55,7 +55,7 @@ Add `spanda` to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-spanda = "0.9.2"
+spanda = "0.9.3"
 ```
 
 ### Basic Tween
@@ -235,7 +235,7 @@ assert_eq!(driver.active_count(), 0); // completed animations are auto-removed
 | `serde` | `Serialize`/`Deserialize` on all public types | State persistence, network sync |
 | `bevy` | `SpandaPlugin` for Bevy 0.18 — auto-ticks Tween/Spring components | Game development |
 | `wasm` | `RafDriver` for browser `requestAnimationFrame` | Web apps (Leptos/Dioxus/Yew) |
-| `wasm-dom` | DOM plugins: FLIP, SplitText, ScrollSmoother, Draggable, Observer | Web apps with DOM interaction |
+| `wasm-dom` | DOM plugins: FLIP, SplitText, ScrollSmoother, SmoothScroll, Draggable, Observer | Web apps with DOM interaction |
 | `palette` | Colour interpolation via the `palette` crate | Smooth colour animations |
 | `tokio` | `async`/`.await` on timeline completion | Async workflows |
 | `gpu` | GPU compute shader batch animation via `wgpu` | Particle systems, large batches |
@@ -351,6 +351,7 @@ src/
 ├── clock.rs         — Clock trait, WallClock, ManualClock, MockClock
 ├── driver.rs        — AnimationDriver, AnimationDriverArc, AnimationId
 ├── scroll.rs        — ScrollClock, ScrollDriver
+├── scroll_smooth.rs — SmoothScroll1D (exponential smooth scroll core)
 ├── path.rs          — BezierPath, MotionPath, MotionPathTween
 ├── bezier.rs        — CatmullRomSpline, PathEvaluate2D
 ├── motion_path.rs   — PolyPath, CompoundPath, PathCommand
@@ -371,6 +372,7 @@ src/
     ├── split_text.rs — SplitText character/word splitting
     ├── flip.rs      — FlipState, FlipAnimation (feature = "wasm-dom")
     ├── scroll_smoother.rs — ScrollSmoother (feature = "wasm-dom")
+    ├── smooth_scroll.rs — SmoothScroll (feature = "wasm-dom")
     ├── draggable.rs — Draggable DOM binding (feature = "wasm-dom")
     └── observer.rs  — Observer unified input (feature = "wasm-dom")
 ```
