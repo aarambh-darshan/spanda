@@ -1,4 +1,18 @@
+> **⚠️ This project has moved**
+>
+> **Spanda is no longer maintained.**
+>
+> Development continues under a new name with a cleaner workspace architecture:
+>
+> ➡️ **[Animato](https://github.com/AarambhDevHub/animato)** — `cargo add animato`
+>
+> Animato covers everything Spanda had (tweens, springs, timelines, motion paths, colour, GPU, WASM, Bevy) and more — built as a proper Cargo workspace instead of a single flat `src/` folder.
+>
+> ---
+
 # spanda
+
+[![Crates.io](https://img.shields.io/crates/v/animato.svg?label=animato)](https://crates.io/crates/animato)
 
 *Sanskrit: स्पन्द — vibration, pulse, the throb of motion.*
 
@@ -40,7 +54,9 @@ game engines (Bevy), or native desktop apps.
 
 ```toml
 [dependencies]
-spanda = "0.9.3"
+# Spanda is deprecated — use animato instead:
+# animato = "0.3"
+spanda = "0.9.3"  # last release, no longer maintained
 ```
 
 ### Quick Example
